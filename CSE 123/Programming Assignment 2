@@ -1,0 +1,493 @@
+import java.util.*;
+
+public class Client {
+    private static final Random RAND = new Random();
+
+    public static void main(String[] args) throws Exception {
+        List<Region> scenario = createSimpleScenario();
+        // List<Region> scenario = createRandomScenario(10, 10, 100, 1000, 100000);
+        // List<Region> scenario = createRandomScenario(5, 100, 1000, 100, 1000);
+        System.out.println(scenario);
+        
+        Path allocation = findPath(scenario);
+        if (allocation != null) {
+            printResult(allocation);
+        } else {
+            System.out.println("No valid path found. :-(");
+        }
+    }
+ 
+    // Behavior:
+    // - This is the method that "finds the path that helps the most people with ideal cost".
+    //   First it finds all the possible paths exist from the list of regions given
+    //   It will start at the first region in the list, and check each region in the list if the 
+    //   specific region can reach the current region and the specific region is not already in
+    //   the current path that is being built. Once all the possible regions are checked from a
+    //   current region, the current path is added to the list of possible paths.
+    //   Then, it returns the best possible path based on people helped
+    //   and cost (if two paths help the same number of people). This will sort the list of
+    //   possible paths and make the paths that help the most number of people (or costs the least
+    //   amount of the money if there is a tie) go to the front. And we return the best path.
+    // Exceptions:
+    // - IllegalArgumentException: If the list of regions passed in doesn't exist
+    // Returns:
+    // - null: if the list of regions has no regions
+    // - Path: the path that helps the most people with ideal cost
+    // Parameters:
+    // - sites: the list of regions that the path could contain
+    public static Path findPath(List<Region> sites)
+    {
+        if(sites == null)
+        {
+            throw new IllegalArgumentException();
+        }
+        if(sites.size() == 0)
+        {
+            return null;
+        }
+        List<Path> pathsPossible = new ArrayList<>();
+        Path startPath = new Path();
+        startPath = startPath.extend(sites.get(0));
+        findPath(sites, startPath, sites.get(0), pathsPossible);
+        return findBestPath(pathsPossible);
+    }
+
+    // Behavior:
+    // - This is the method that finds all the possible paths exist from the list of regions given
+    //   It will start at the first region in the list, and check each region in the list if the 
+    //   specific region can reach the current region and the specific region is not already in
+    //   the current path that is being built. Once all the possible regions are checked from a
+    //   current region, the current path is added to the list of possible paths.
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - sites: the list of regions available for the paths
+    // - currPath: the current Path that is being built
+    // - currRegion: the current region being searched for connections
+    // - paths: the list of paths that are possible from sites
+    private static void findPath(List<Region> sites, Path currPath, Region currRegion, List<Path> paths)
+    {
+        for(int region = 0; region < sites.size(); region++)
+        {
+            if(currRegion.canReach(sites.get(region)) && !currPath.getRegions().contains(sites.get(region)))
+            {
+                currPath = currPath.extend(sites.get(region));
+                findPath(sites, currPath, sites.get(region), paths);
+                currPath = currPath.removeEnd();
+            }
+        }
+        paths.add(currPath);
+    }
+
+    // Behavior:
+    // - This is the method that actually returns the best possible path based on people helped
+    //   and cost (if two paths help the same number of people). This will sort the list of
+    //   possible paths and make the paths that help the most number of people (or costs the least
+    //   amount of the money if there is a tie) go to the front. And we return the best path.
+    // Exceptions:
+    // - None
+    // Returns:
+    // - Path: The that help the most number of people (or costs the least amount of the money
+    //   if there is a tie)
+    // Parameters:
+    // - availablePaths: The list of possible paths between the regions
+    private static Path findBestPath(List<Path> availablePaths)
+    {
+        for(int i = 0; i < availablePaths.size(); i++)
+        {
+            for(int j = 0; j < availablePaths.size() - 1; j++)
+            {
+                if((availablePaths.get(j).totalPeople() < availablePaths.get(j + 1).totalPeople())
+               || ((availablePaths.get(j).totalPeople() == availablePaths.get(j + 1).totalPeople())
+                && (availablePaths.get(j).totalCost() > availablePaths.get(j + 1).totalCost())))
+                {
+                    Path temp = availablePaths.get(j);
+                    availablePaths.set(j, availablePaths.get(j + 1));
+                    availablePaths.set(j + 1, temp);
+                }
+            }
+        }
+        return availablePaths.get(0);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // PROVIDED HELPER METHODS - **DO NOT MODIFY ANYTHING BELOW THIS LINE!** //
+    ///////////////////////////////////////////////////////////////////////////
+    
+    /**
+    * Prints each path in the provided set. Useful for getting a quick overview
+    * of all path currently in the system.
+    * @param paths Set of paths to print
+    */
+    public static void printPaths(Set<Path> paths) {
+        System.out.println("All Allocations:");
+        for (Path a : paths) {
+            System.out.println("  " + a);
+        }
+    }
+
+    /**
+    * Prints details about a specific path result, including the total people
+    * helped and total cost.
+    * @param path The path to print
+    */
+    public static void printResult(Path path) {
+        System.out.println("Result: ");
+        List<Region> regions = path.getRegions();
+        System.out.print(regions.get(0).getName());
+        for (int i = 1; i < regions.size(); i++) {
+            System.out.print(" --($" + regions.get(i - 1).getCostTo(regions.get(i)) + ")-> " + regions.get(i).getName());
+        }
+        System.out.println();
+        System.out.println("  People helped: " + path.totalPeople());
+        System.out.printf("  Cost: $%.2f\n", path.totalCost());
+    }
+
+    /**
+    * Creates a scenario with numRegions regions by randomly choosing the population 
+    * and travel costs for each region.
+    * @param numRegions Number of regions to create
+    * @param minPop Minimum population per region
+    * @param maxPop Maximum population per region
+    * @param minCost Minimum cost of travel between regions
+    * @param maxCost Maximum cost of travel between regions
+    * @return A list of randomly generated regions
+    */
+    public static List<Region> createRandomScenario(int numRegions, int minPop, int maxPop,
+                                                    double minCost, double maxCost) {
+        List<Region> result = new ArrayList<>();
+
+        // ranomly create regions
+        for (int i = 0; i < numRegions; i++) {
+            // int pop = RAND.nextInt(minPop, maxPop + 1);
+            int pop = RAND.nextInt(maxPop - minPop + 1) + minPop;
+            result.add(new Region("Region #" + i, pop));
+        }
+
+        // randomly create connections between regions
+        for (int i = 0; i < numRegions; i++) {
+            // int numConnections = RAND.nextInt(1, numLocs - i);
+            Region site = result.get(i);
+            for (int j = i + 1; j < numRegions; j++) {
+                // flip a coin to decide whether or not to add each connection
+                if (RAND.nextBoolean()) {
+                    Region other = result.get(j);
+                    // double cost = round2(RAND.nextDouble(minCostPer, maxCostPer));
+                    double cost = round2(RAND.nextDouble() * (maxCost - minCost) + maxCost);
+                    site.addConnection(other, cost);
+                    other.addConnection(site, cost);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
+    * Manually creates a simple list of regions to represent a known scenario.
+    * @return A simple list of regions
+    */
+    public static List<Region> createSimpleScenario() {
+        List<Region> result = new ArrayList<>();
+        Region regionOne = new Region("Region #1", 50);
+        Region regionTwo = new Region("Region #2", 300);
+        Region regionThree = new Region("Region #3", 200);
+        Region regionFour = new Region("Region #4", 120);
+    
+        regionOne.addConnection(regionTwo, 1200);
+        regionOne.addConnection(regionThree, 700);
+        regionOne.addConnection(regionFour, 600);
+    
+        regionTwo.addConnection(regionOne, 1200);
+    
+        regionThree.addConnection(regionOne, 700);
+        regionThree.addConnection(regionFour, 1000);
+    
+        regionFour.addConnection(regionOne, 600);
+        regionFour.addConnection(regionThree, 1000);
+        
+        result.add(regionOne);   // Region #1: pop. 50 - [Region #2 (1200.0), Region #3 (700.0), Region #4 (600.0)]
+        result.add(regionTwo);   // Region #2: pop. 300 - [Region #1 (1200.0)]
+        result.add(regionThree); // Region #3: pop. 200 - [Region #4 (1000.0), Region #1 (700.0)]
+        result.add(regionFour);  // Region #4: pop. 120 - [Region #3 (1000.0), Region #1 (600.0)]
+    
+        return result;
+    }   
+
+    /**
+    * Rounds a number to two decimal places.
+    * @param num The number to round
+    * @return The number rounded to two decimal places
+    */
+    private static double round2(double num) {
+        return Math.round(num * 100) / 100.0;
+    }
+}
+
+public class Path {
+
+    private List<Region> regions;
+
+    /**
+     * Creates a new Path object representing the given regions.
+     * @param regions the regions in the solution
+     */
+    private Path(List<Region> regions) {
+        this.regions = new ArrayList<>(regions);
+    }
+
+    /**
+     * Creates a new Path object with no regions in it.
+     */
+    public Path() {
+        this(new ArrayList<>());
+    }
+
+    /**
+     * Returns a copy of this Path's regions.
+     */
+    public List<Region> getRegions() {
+        return new ArrayList<>(regions);
+    }
+
+    /**
+     * Returns the starting point of this Path, or null if there are no
+     * regions currently in the Path.
+     */
+    public Region getStart() {
+        if (regions.isEmpty()) {
+            return null;
+        }
+
+        return regions.get(0);
+    }
+
+    /**
+     * Returns the ending point of this Path, or null if there are no
+     * regions currently in the Path.
+     */
+    public Region getEnd() {
+        if (regions.isEmpty()) {
+            return null;
+        }
+        
+        return regions.get(regions.size() - 1);
+    }
+
+    /**
+     * Returns a new Path with the contents of this Path
+     * and the passed in region added to the end.
+     * @param r Region to be added to the end of the new Path.
+     * @return a new Path with r added to it.
+     */
+    public Path extend(Region r) {
+        if (regions.contains(r)) {
+            throw new IllegalArgumentException("Path already contains region " + r);
+        }
+        List<Region> newRegions = new ArrayList<>(regions);
+        newRegions.add(r);
+        return new Path(newRegions);
+    }
+
+    /**
+     * Returns a new Path with the contents of this Path
+     * and the last region removed from it.
+     * @return a new Path with the last region removed from it.
+     */
+    public Path removeEnd() {
+        if (regions.isEmpty()) {
+            throw new IllegalStateException("Cannot remove from an empty path.");
+        }
+        List<Region> newRegions = new ArrayList<>(regions);
+        newRegions.remove(regions.size() - 1);
+        return new Path(newRegions);
+    }
+
+    /**
+     * Returns the number of regions in this Path.
+     */
+    public int size() {
+        return regions.size();
+    }
+
+    /**
+     * Calculates and returns the total population that can be helped
+     * by this Path.
+     * @return the total population that can be helped by this Path.
+     */
+    public int totalPeople() {
+        int total = 0;
+        for (Region r : regions) {
+            total += r.getPopulation();
+        }
+        return total;
+    }
+
+    /**
+     * Calculates and returns the combined cost of this Path.
+     * @return the combined cost of this Path.
+     */
+    public double totalCost() {
+        double total = 0;
+        for (int i = 0; i < regions.size() - 1; i++) {
+            total += regions.get(i).getCostTo(regions.get(i + 1));
+        }
+        return total;
+    }
+
+    /**
+     * Returns a String representation of an Path object in the format:
+     * "[Region, ..., Region]" where each Region is in its string representation.
+     * @return the String representation of an Path object
+     */
+    public String toString() {
+        return regions.toString();
+    }
+
+    /**
+     * Compares the specified object with this Path for equality. Returns true if the
+     * specified object is also an Path and the two Paths have the same
+     * collection of regions.
+     * @param other object to be compared for equality with this Path
+     * @return true if the specified object is equal to this Path
+     */
+    public boolean equals(Object other) {
+        if (other == this) {
+            return true;
+        }
+        if (!(other instanceof Path)) {
+            return false;
+        }
+        Path otherAlloc = (Path)other;
+        return this.regions.equals(otherAlloc.getRegions());
+    }
+
+    /**
+     * Returns the hash code value for this Path
+     * @return the hash code value for this Path
+     */
+    @Override
+    public int hashCode() {
+        return regions.hashCode();
+    }
+}
+
+public class Region {
+    private String name;
+    private int population;
+    private Map<Region, Double> costs;
+
+    /**
+     * Creates a new Region object with the given name, population, and costs.
+     * @param name the name of the region
+     * @param pop the population of the region* @param costs the cost to travel from this region 
+     * to various other regions
+     */
+    public Region(String name, int pop, Map<Region, Double> costs) {
+        this.name = name;
+        this.population = pop;
+        this.costs = costs;
+    }
+
+    /**
+     * Creates a new Region object with the given name and population.
+     * @param name the name of the region
+     * @param pop the population of the region
+     */
+    public Region(String name, int pop) {
+        this(name, pop, new HashMap<Region, Double>());
+    }
+
+    /**
+     * Adds a new connection from this region to other with the specified cost.
+     * @param other the region to connect to
+     * @param cost the cost to travel from this region to other
+     */
+    public void addConnection(Region other, double cost) {
+        costs.put(other, cost);
+    }
+
+
+    /**
+     * Returns the name of the region
+     * @return the name of the region
+     */
+    public String getName() { return this.name; }
+
+    /**
+     * Returns the population of the region
+     * @return the population of the region
+     */
+    public int getPopulation() { return this.population; }
+
+    /**
+     * Returns the cost of travelling from this region to another region
+     * @param other the region to find the cost of travelling to
+     * @return the cost of travelling from this region to other 
+     */
+    public double getCostTo(Region other) {
+        if (!costs.containsKey(other)) {
+            throw new IllegalArgumentException("Cannot travel from " + this.name + " to " + other.name);
+        }
+
+        return costs.get(other);
+    }
+
+    /**
+     * Checks whether or not another region can be reached from this region
+     * @param other the region to check 
+     * @return true if other can be reached from this region, false otherwise
+     */    
+    public boolean canReach(Region other) {
+        return costs.containsKey(other);
+    }
+
+
+    /**
+     * Returns a String representation of a Region object in the format:
+     * "<name>: pop. <population> - [<connection> ($<cost>), ...]"
+     * @return the String representation of a Region object
+     */
+    public String toString() {
+        String result = name + ": pop. " + population + " - [";
+        for (Region connection : costs.keySet()) {
+            result += connection.name + " (" + costs.get(connection) + "), ";
+        }
+        result = result.substring(0, result.length() - 2) + "]";
+        return result;
+    }
+
+    /**
+     * Compares the specified object with this region for equality. Returns true if the
+     * specified object is also a region and the two regions have the
+     * same name and population.
+     * @param other object to be compared for equality with this region
+     * @return true if the specified object is equal to this region
+     */
+    @Override
+    public boolean equals(Object other) {
+        if (other == this) {
+            return true;
+        }
+        if (!(other instanceof Region)) {
+            return false;
+        }
+        Region otherLoc = (Region)other;
+
+        return this.name.equals(otherLoc.name) &&
+                this.population == otherLoc.population; 
+    }
+
+    /**
+     * Returns the hash code value for this Region
+     * @return the hash code value for this Region
+     */
+    @Override
+    public int hashCode() {
+        int result = name.hashCode();
+        result = 31 * result + Integer.hashCode(population);
+        return result;
+    }
+}

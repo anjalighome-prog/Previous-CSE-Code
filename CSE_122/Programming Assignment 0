@@ -1,0 +1,214 @@
+import java.util.*;
+import java.io.*;
+
+public class Stonks {
+    public static final String STOCKS_FILE_NAME = "stonks.tsv";
+
+    public static void main(String[] args) throws FileNotFoundException 
+    {
+        // Scanners
+        Scanner console = new Scanner(System.in);
+        Scanner fileRead = new Scanner(new File(STOCKS_FILE_NAME));
+
+        // Initialize Arrays
+        int numStocks = Integer.parseInt(fileRead.nextLine());
+        String[] stocks = new String[numStocks];
+        double[] prices = new double[numStocks];
+        double[] portfolio = new double[numStocks];
+
+        // populate Stocks and prices
+        populateSAndP(fileRead, stocks, prices);
+
+        // Welcome message and ticker
+        System.out.println("Welcome to the CSE 122 Stocks Simulator!");
+        System.out.println("There are " + numStocks + " stocks on the market:");
+
+        for(int i = 0; i < numStocks; i++)
+        {
+            System.out.println(stocks[i] + ": " + prices[i]);
+        }
+
+        // Menu
+        String givenInput = "";
+        while(!givenInput.equalsIgnoreCase("Q"))
+        {
+            System.out.println();
+            System.out.println("Menu: (B)uy, (Se)ll, (S)ave, (Q)uit");
+            System.out.print("Enter your choice: ");
+
+            // Actions
+            givenInput = console.nextLine();
+            if(givenInput.equalsIgnoreCase("B"))
+            {
+                buy(console, stocks, prices, portfolio);
+            }
+            else if(givenInput.equalsIgnoreCase("Se"))
+            {
+                sell(console, stocks, portfolio);
+            }
+            else if(givenInput.equalsIgnoreCase("S"))
+            {
+                save(console, stocks, portfolio);
+            }
+            else if(!(givenInput.equalsIgnoreCase("Q")))
+            {
+                System.out.println("Invalid choice: " + givenInput);
+                System.out.println("Please try again");
+            }
+        }
+
+        // Portifolio valued at:
+
+        double output = totalValue(prices, portfolio);
+        System.out.println();
+        System.out.println("Your portfolio is currently valued at: $" + output);
+    }
+
+    // TODO: write your methods here
+
+    // fills stocks and prices
+    public static void populateSAndP(Scanner read, String[] stocks, double[] prices)
+    {
+        read.nextLine();
+        int index = 0;
+        while(read.hasNextLine())
+        {
+            String line = read.nextLine();
+            Scanner parse = new Scanner(line);
+            stocks[index] = parse.next();
+            //System.out.println(stocks[index]);
+            prices[index] = parse.nextDouble();
+            //System.out.println(prices[index]);
+            parse.next(); // Avoids reading unneccesary info
+            parse.next(); // Avoids reading unneccesary info
+            index++;
+        }
+    }
+
+    // Buying Stocks
+    public static void buy(Scanner input, String[] stocks, double[] prices, double[] portfolio)
+    {
+        String newInput = "";
+        double price = 0.0;
+        boolean isNotValid = true;
+        int indexOfStock = 0;
+        double numStocksPurchased;
+
+        // checks to see if newInput string is valid
+        while(isNotValid)
+        {
+            System.out.print("Enter the stock ticker: ");
+            newInput = input.nextLine();
+            for(int i = 0; i < stocks.length; i++)
+            {
+                if(stocks[i].equals(newInput))
+                {
+                    isNotValid = false;
+                    indexOfStock = i;
+                }
+            }
+            if(isNotValid)
+            {
+                System.out.println(newInput + " is not a valid input");
+                System.out.println("Please try again");
+            }
+        }
+
+        // moving on with Buying
+        double budget = 0.0;
+        price = prices[indexOfStock];
+        System.out.print("Enter your budget: ");
+        budget = Double.parseDouble(input.nextLine());
+
+        // check if that is above the minimum
+        if(budget < 5.0)
+        {
+            System.out.println("Budget must be at least $5");
+        }
+        else
+        {
+            portfolio[indexOfStock] = portfolio[indexOfStock] + (budget / prices[indexOfStock]);
+            System.out.println("You successfully bought " + newInput +".");
+        }
+    }
+
+    // Selling Stocks
+    public static void sell(Scanner input, String[] stocks, double[] portfolio)
+    {
+        String newInput = "";
+        int index = 0;
+        boolean isNotValid = true;
+        double sold = 0.0;
+
+        // checks to see if newInput string is valid
+        while(isNotValid)
+        {
+            System.out.print("Enter the stock ticker: ");
+            newInput = input.nextLine();
+            for(int i = 0; i < stocks.length; i++)
+            {
+                if(stocks[i].equals(newInput))
+                {
+                    isNotValid = false;
+                    index = i;
+                }
+            }
+            if(isNotValid)
+            {
+                System.out.println(newInput + " is not a valid input");
+                System.out.println("Please try again");
+            }
+        }
+
+        // on to Selling
+        System.out.print("Enter the number of shares to sell: ");
+        sold = Double.parseDouble(input.nextLine());
+
+        // check if it is possible
+        if(portfolio[index] < sold)
+        {
+            System.out.println("You do not have enough shares of " + newInput + " to sell " + sold + " shares.");
+        }
+        else
+        {
+            portfolio[index] = portfolio[index] - sold;
+            System.out.println("You successfully sold " + sold + " shares of " + newInput + ".");
+        }
+    }
+
+    // Save the Status
+    public static void save(Scanner input, String[] stocks, double[] portfolio) throws FileNotFoundException
+    {
+        String newInput = "";
+
+        // getting the file name
+        System.out.print("Enter new portfolio file name: ");
+        newInput = input.nextLine();
+
+        // putting it into a printstream
+        PrintStream fileWrite = new PrintStream(new File(newInput));
+        
+        // put in the given file
+        for(int i = 0; i < stocks.length; i++)
+        {
+            if(!(portfolio[i] == 0.0))
+            {
+                fileWrite.println(stocks[i] + " " + portfolio[i]);
+            }
+        }
+    }
+
+    // evaluates the portfolio
+    public static double totalValue(double[] prices, double[] portfolio)
+    {
+        double total = 0.0;
+        
+        // cumulation
+        for(int i = 0; i < prices.length; i++)
+        {
+            total += prices[i] * portfolio[i];
+        }
+        
+        return total;
+    }
+}

@@ -1,0 +1,366 @@
+import java.util.Scanner;
+
+public class ConnectFour extends AbstractStrategyGame {
+    private int currentPlayer;
+    private int[][] gameboard;
+    private static final int ROW_NUMBER = 6;
+    private static final int COLUMN_NUMBER = 7;
+
+    // Behavior:
+    // - This constructor creates a new Connect to Four game
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - None
+    public ConnectFour()
+    {
+        currentPlayer = 0;
+        gameboard = new int[ROW_NUMBER][COLUMN_NUMBER];
+    }
+    // Behavior:
+    // - This method returns the instructions to the game for the user to print out
+    // Exceptions:
+    // - None
+    // Returns:
+    // - String: The instructions to the game
+    // Parameters:
+    // - None
+    @Override
+    public String instructions() {
+        String instruct = "";
+        instruct += "Welcome to the game: Connect To Four!\n";
+        instruct += "The objective is to get 4 disks in a row (horizontally, vertically, or diagonally)\n";
+        instruct += "Player 1 will play first with the numbered discs, marked with the number 1.\n";
+        instruct += "Player 2 will play with the numbered discs, marked with the number 2.\n";
+        instruct += "At the start of each turn, the current player will be choose if they\n";
+        instruct += "want to add a disk to a current column or to remove one of their disks from the bottom row.\n";
+        instruct += "They will then choose a column to do the action of their choice. The\n";
+        instruct += "game ends when one player has reached the objective of the game!\n";
+        return instruct;
+    }
+
+    // Behavior:
+    // - This method returns the current state of the game board, from top to bottom in
+    //   viewer friendly way for the client code to print out
+    // Exceptions:
+    // - None
+    // Returns:
+    // - String: The current state of the game board in a visual way
+    // Parameters:
+    // - None
+    @Override
+    public String toString() {
+        String gameState = "";
+        for(int i = gameboard.length - 1; i >= 0; i--)
+        {
+            gameState += "| ";
+            for(int j = 0; j < gameboard[0].length; j++)
+            {
+                gameState += gameboard[i][j] + " | ";
+            }
+            gameState += "\n";
+        }
+        for(int i = 0; i < 29; i++)
+        {
+            gameState += "-";
+        }
+        gameState += "\n";
+        return gameState;
+    }
+
+    // Behavior:
+    // - This method checks if the gameboard to see if there can be a 
+    //   a winner called for the current game. It checks the rows, 
+    //   columns, and diagonals. It also checks in the board is full
+    // Exceptions:
+    // - None
+    // Returns:
+    // - int: -1 if the game has not been won, then 0 or 1 if the current
+    //   player has won the game.
+    // Parameters:
+    // - None
+    @Override
+    public int getWinner() {
+        if(verticalWin() || horizontalWin() || diagonalWin())
+        {
+            return currentPlayer;
+        }
+        else if(isFull())
+        {
+            return 3;
+        }
+        return -1;
+    }
+
+    // Behavior:
+    // - This method checks the game board to see if there is a four in a row
+    //   vertically in any column
+    // Exceptions:
+    // - None
+    // Returns:
+    // - boolean: whether the game has been won at this state or not
+    // Parameters:
+    // - None
+    private boolean verticalWin()
+    {
+        boolean gameWon = false;
+        for(int row = 0; row <= gameboard.length - 4; row++)
+        {
+            for(int column = 0; column < gameboard[0].length; column++)
+            {
+                if(gameboard[row][column] == gameboard[row + 1][column] && gameboard[row][column] != 0)
+                {
+                    if(gameboard[row + 1][column] == gameboard[row + 2][column])
+                    {
+                        if(gameboard[row + 2][column] == gameboard[row + 3][column])
+                        {
+                            gameWon = true;
+                            return gameWon;
+                        }
+                    }
+                }
+            }
+        }
+        return gameWon;
+    }
+
+    // Behavior:
+    // - This method checks the game board if there is a four in a row
+    //   horizonatally in any row
+    // Exceptions:
+    // - None
+    // Returns:
+    // - boolean: whether the current player has won at this time
+    // Parameters:
+    // - None
+    private boolean horizontalWin()
+    {
+        boolean gameWon = false;
+        for(int column = 0; column <= gameboard[0].length - 4; column++)
+        {
+            for(int row = 0; row < gameboard.length; row++)
+            {
+                if(gameboard[row][column] == gameboard[row][column + 1] && gameboard[row][column] != 0)
+                {
+                    if(gameboard[row][column + 1] == gameboard[row][column + 2])
+                    {
+                        if(gameboard[row][column + 2] == gameboard[row][column + 3])
+                        {
+                            gameWon = true;
+                            return gameWon;
+                        }
+                    }
+                }
+            }
+        }
+        return gameWon;
+    }
+
+    // Behavior:
+    // - This methond checks the game board for a four in a row
+    //   diagonally
+    // Exceptions:
+    // - None
+    // Returns:
+    // - boolean: If the game has been won in this state
+    // Parameters:
+    // - None
+    private boolean diagonalWin()
+    {
+        boolean gameWon = false;
+        for(int column = 3; column < gameboard[0].length; column++)
+        {
+            for(int row = 0; row < gameboard.length - 3; row++)
+            {
+                if(gameboard[row][column] == gameboard[row + 1][column - 1] && gameboard[row][column] != 0)
+                {
+                    if(gameboard[row + 1][column - 1] == gameboard[row + 2][column - 2])
+                    {
+                        if(gameboard[row + 2][column - 2] == gameboard[row + 3][column - 3])
+                        {
+                            gameWon = true;
+                            return gameWon;
+                        }
+                    }
+                }
+            }
+        }
+
+        for(int column = 3; column >= 0; column--)
+        {
+            for(int row = 0; row < gameboard.length - 3; row++)
+            {
+                if(gameboard[row][column] == gameboard[row + 1][column + 1] && gameboard[row][column] != 0)
+                {
+                    if(gameboard[row + 1][column + 1] == gameboard[row + 2][column + 2])
+                    {
+                        if(gameboard[row + 2][column + 2] == gameboard[row + 3][column + 3])
+                        {
+                            gameWon = true;
+                            return gameWon;
+                        }
+                    }
+                }
+            }
+        }
+        return gameWon;
+    }
+
+    // Behavior:
+    // - This method checks if the gameboard is full with player disks or not. If there is
+    //   a spot where slot is marked with '0', or not taken, it returns false that the board
+    //   is full
+    // Exceptions:
+    // - None
+    // Returns:
+    // - boolean: if the board is full or not
+    // Parameters:
+    // - None
+    private boolean isFull()
+    {
+        for(int i = 0; i < gameboard.length; i++)
+        {
+            for(int j = 0; j < gameboard[0].length; j++)
+            {
+                if(gameboard[i][j] == 0)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    // Behavior:
+    // - This method adds a disk to a given column, marking the bottom most empty spot
+    //   with the current player's number (provided that the column is not full)
+    // Exceptions:
+    // - IllegalArgumentException: If the column is full
+    // Returns:
+    // - None
+    // Parameters:
+    // - column: the column to add a player's disk to
+    private void addDisk(int column)
+    {
+        boolean foundBottomEmptySpot = false;
+        int rowIndex = 0;
+        while(!foundBottomEmptySpot && rowIndex < gameboard.length)
+        {
+            if(gameboard[rowIndex][column] == 0)
+            {
+                gameboard[rowIndex][column] = currentPlayer + 1;
+                foundBottomEmptySpot = true;
+            }
+            rowIndex++;
+        }
+        if(!foundBottomEmptySpot)
+        {
+            throw new IllegalArgumentException("This column is full! Please try again!");
+        }
+    }
+
+    // Behavior:
+    // - This method removes a player's disk from the bottom of a specific column
+    // Exceptions:
+    // - IllegalArgumentException: If the disk at the bottom of the column does not 
+    //   belong to the current player or if the column is empty
+    // Returns:
+    // - None
+    // Parameters:
+    // - column: The column of the disk that the player wants to remove
+    private void removeDisk(int column)
+    {
+        if(gameboard[0][column] != (currentPlayer + 1))
+        {
+            throw new IllegalArgumentException("You cannot remove another player's disk! Please try again!");
+        }
+        else if(gameboard[0][column] == 0)
+        {
+            throw new IllegalArgumentException("There is no disk to remove! Please try again!");
+        }
+        for(int i = 0; i < gameboard.length - 1; i++)
+        {
+            gameboard[i][column] = gameboard[i + 1][column];
+        }
+    }
+
+    // Behavior:
+    // - This method returns the number of the next player given the game is still going
+    // Exceptions:
+    // - None
+    // Returns:
+    // - int: -1 if the game is done, 0 or 1, depending on the current player's number
+    // Parameters:
+    // - 
+    @Override
+    public int getNextPlayer() {
+        if(this.isGameOver())
+        {
+            return -1;
+        }
+        return (currentPlayer + 1) % 2;
+    }
+
+    // Behavior:
+    // - This method runs the game. This is where the players can make their moves by 
+    //   giving the action they wish to perform as well as the column they 
+    //   wish to apply the action to. The game board state is printed after every turn.
+    //   When the game has been won, or the game board is filled, there are messages 
+    //   printed of congratulations. 
+    // Exceptions:
+    // - IllegalArgumentException: If the scanner is null, if the action is not a 
+    //   legal action (add or remove), if the column number is not a valid number
+    // Returns:
+    // - None
+    // Parameters:
+    // - input: Scanner of the console to recieve user input for action and column
+    //   during a player's turn.
+    @Override
+    public void makeMove(Scanner input) {
+        if(input == null)
+        {
+            throw new IllegalArgumentException("Input is not valid! Please try again!");
+        }
+        System.out.print(toString());
+        while(!this.isGameOver())
+        {
+            System.out.print("Player " + (currentPlayer + 1) + ": Would you like to add or remove a disk? (Enter A or R) ");
+            String choice = input.nextLine();
+            if(!(choice.equalsIgnoreCase("a")) && !(choice.equalsIgnoreCase("r")))
+            {
+                throw new IllegalArgumentException("This is not a proper action! Please try again!");
+            }
+            System.out.print("Which column would you like to apply this action to? (Choose between 1 and 7) ");
+            int column = Integer.parseInt(input.nextLine()) - 1;
+            if(column < 0 || column > 6)
+            {
+                throw new IllegalArgumentException("Not a legal column! Please try again!");
+            }
+            if(choice.equalsIgnoreCase("a"))
+            {
+                addDisk(column);
+            }
+            else
+            {
+                removeDisk(column);
+            }
+            System.out.print(toString());
+            if(getWinner() != -1 && getWinner() != 3)
+            {
+                System.out.println("Congratulations Player " + (currentPlayer + 1) + "! You won by");
+                System.out.println("four disks in a row");
+            }
+            else if(getWinner() == 3)
+            {
+                System.out.println("It's a tie!");
+            }
+            else
+            {
+                System.out.println();
+                currentPlayer = getNextPlayer();
+            }
+        }
+    }
+}

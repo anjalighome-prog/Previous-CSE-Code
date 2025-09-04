@@ -1,0 +1,203 @@
+import java.util.*;
+import java.io.*;
+
+public class Linter {
+    // Field
+    public List<Check> checks;
+
+    //constructor
+    public Linter(List<Check> checks)
+    {
+        this.checks = checks;
+    }
+
+    // Behavior:
+    // - This scans through a file of code and returns the errors presents
+    // Exception:
+    // - FileNotFoundException: if the file does not exist
+    // Returns:
+    // - List<Error>: the errors found in the code given
+    // Parameters:
+    // - fileName: The name of the file of code to go through
+    public List<Error> lint(String fileName) throws FileNotFoundException
+    {
+        List<Error> errors = new ArrayList<>();
+        File toCheck = new File(fileName); // converts to file
+        Scanner lineScan = new Scanner(toCheck);
+        int lineCount = 1; 
+        while(lineScan.hasNextLine()) // does this for every line
+        {
+            String codeLine = lineScan.nextLine();
+            for(int i = 0; i < checks.size(); i++) // goes through each check
+            {
+                Optional<Error> error = (checks.get(i)).lint(codeLine, lineCount);
+                if(error.isPresent())
+                {
+                    Error e = error.get();
+                    errors.add(e);
+                }
+            }
+            lineCount++;
+        }
+        return errors;
+    }
+}
+
+public class Error
+{
+    // Fields
+    private int code;
+    private int lineNumber;
+    private String message;
+
+    // constructor
+    public Error(int code, int lineNumber, String message)
+    {
+        this.code = code;
+        this.lineNumber = lineNumber;
+        this.message = message;
+    }
+
+    // to String
+    // Behavior:
+    // - Prints the error
+    // Exception:
+    // - N/A
+    // Returns:
+    // - String: The structure of the error in a string format
+    // Parameters:
+    // - N/A
+    public String toString()
+    {
+        return "(Line: " + lineNumber + ") has error code " + code + '\n' + message;
+    }
+
+    // Behavior:
+    // - getting the code line
+    // Exception:
+    // - N/A
+    // Returns:
+    // - int: Line number in the code
+    // Parameters:
+    // - N/A
+    public int getLineNumber()
+    {
+        return this.lineNumber;
+    }
+
+    // Behavior:
+    // - getting error code
+    // Exception:
+    // - N/A
+    // Returns:
+    // - int: The error code of the error
+    // Parameters:
+    // - N/A
+    public int getCode()
+    {
+        return this.code;
+    }
+
+    // Behavior:
+    // - getting error message
+    // Exception:
+    // - N/A 
+    // Returns:
+    // - String: the message of the error
+    // Parameters:
+    // - N/A 
+    public String getMessage()
+    {
+        return this.message;
+    }
+}
+
+public class BlankPrintlnCheck implements Check
+{
+    // Behavior:
+    // - This checks whether the line of code is a blank println
+    //   makes an error with code 3 if true
+    // Exception:
+    // - N/A
+    // Returns:
+    // - Optional<Error>: whether the line of code is a blank println
+    // Parameters:
+    // - line: The line of code
+    // - lineNumber: The line in the program
+    public Optional<Error> lint(String line, int lineNumber)
+    {
+        if(line.contains("System.out.println(\"\")"))
+        {
+            return Optional.of(new Error(3, lineNumber, "Extra blank line"));
+        }
+        return Optional.empty();
+    } 
+}
+
+public class BreakCheck implements Check
+{
+    // Behavior:
+    // - this checks if the line of code has a break without the comment slashes before it
+    //   makes a error object with the code 2 if that is true
+    // Exception:
+    // - N/A
+    // Returns:
+    // - Optional<Error>: whether the line contains the break before the comment slashes or on its
+    //   own
+    // Parameters:
+    // - line: The line of code
+    // - lineNumber: the line number within the program
+    public Optional<Error> lint(String line, int lineNumber)
+    {
+        if(line.contains("break") && !(line.contains("//")))
+        {
+            return Optional.of(new Error(2, lineNumber, "Line contains a break. Illegal!"));
+        }
+        else if((line.contains("//") && line.contains("break")) 
+                    && (line.indexOf("//") > line.indexOf("break")))
+        {
+            return Optional.of(new Error(2, lineNumber, "Line contains a break. Illegal!"));
+        }
+        return Optional.empty();
+    } 
+}
+
+public class LongLineCheck implements Check
+{
+    // Behavior:
+    // - This checks whether the line of code is too long, more than 99 characters
+    //   makes an error with the code 1 if true
+    // Exception:
+    // - N/A
+    // Returns:
+    // - Optional<Error>: whether the line of code is longer than 99 characters
+    // Parameters:
+    // - line: The line of code
+    // - lineNumber: The line in the program
+    public Optional<Error> lint(String line, int lineNumber)
+    {
+        if(line.length() >= 100)
+        {
+            return Optional.of(new Error(1, lineNumber, "Line is too long. Please shorten it"));
+        }
+        return Optional.empty();
+    }
+}
+
+import java.io.*;
+
+public class LinterMain {
+    public static final String FILE_NAME = "TestFile.java";
+
+    public static void main(String[] args) throws FileNotFoundException {
+        List<Check> checks = new ArrayList<>();
+        checks.add(new LongLineCheck());
+        checks.add(new BlankPrintlnCheck());
+        checks.add(new BreakCheck());
+        Linter linter = new Linter(checks);
+        List<Error> errors = linter.lint(FILE_NAME);
+        for (Error e : errors) {
+            System.out.println(e);
+        }
+    }
+}

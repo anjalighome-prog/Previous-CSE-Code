@@ -1,0 +1,846 @@
+import java.util.*;
+import java.io.*;
+
+public class Client {
+    public static void main(String[] args) throws FileNotFoundException {
+        Scanner console = new Scanner(System.in);
+        System.out.println("Welcome to the CSE 123 Collection Manager! " +
+                           "To begin, enter your desired mode of operation:");
+        System.out.println();
+        System.out.println("1) Start with an empty collection manager");
+        System.out.println("2) Load collection from file");
+        System.out.print("Enter your choice here: ");
+
+        int choice = Integer.parseInt(console.nextLine());
+        while (choice != 1 && choice != 2) {
+            System.out.println("Invalid choice! Try again");
+            choice = Integer.parseInt(console.nextLine());
+        }
+
+        CollectionManager collectionManager = null;
+        if (choice == 1) {
+            collectionManager = new CollectionManager();
+        } else if (choice == 2) {
+            System.out.print("Enter file to read: ");
+            String inFileName = console.nextLine();
+            File inFile = new File(inFileName);
+            while (!inFile.exists()) {
+                System.out.println("  File does not exist. Please try again.");
+                System.out.print("Enter file to read: ");
+                inFileName = console.nextLine();
+                inFile = new File(inFileName);
+            }
+    
+            collectionManager = new CollectionManager(new Scanner(inFile));
+            System.out.println("Collection manager created!");
+            System.out.println();
+        }
+
+        menu(console);
+        String option = console.nextLine();
+        while (!option.equalsIgnoreCase("quit")) {
+            System.out.println();
+
+            if (option.equalsIgnoreCase("add")) {
+                collectionManager.add(BirthdayCard.parse(console));
+                System.out.println("The birthday card has been added!");
+            } else if (option.equalsIgnoreCase("contains")) {
+                boolean has = collectionManager.contains(BirthdayCard.parse(console));
+                System.out.println("Collection Manager contains the birthday card? " + has);
+            } else if (option.equalsIgnoreCase("print")) {
+                System.out.println(collectionManager.toString());
+                System.out.println();
+            } else if (option.equalsIgnoreCase("creative")) {
+                // collectionManager.creativeExtension(); // TODO: Update with any parameters you need!
+                System.out.print("What maximum price do you want the cards to be? ");
+                Double price = Double.parseDouble(console.nextLine());
+                System.out.print("What area do you want the cards to be? ");
+                int area = Integer.parseInt(console.nextLine());
+                List<BirthdayCard> arr = collectionManager.filter(price, area);
+                if(arr.size() > 0)
+                {
+                    System.out.println("The birthday cards that have the same color and area: " + arr.toString());
+                }
+                else
+                {
+                    System.out.println("There are no birthday in Collection Manager within the price range and specific area.");
+                }
+            } else if (option.equalsIgnoreCase("save")) {
+                System.out.print("Enter file to save to: ");
+                String outFileName = console.nextLine();
+                PrintStream outFile = new PrintStream(new File(outFileName));
+                collectionManager.save(outFile);
+                System.out.println("Collection Manager exported!");
+                System.out.println();
+            } else if (!option.equalsIgnoreCase("quit")) {
+                System.out.println("  Invalid choice. Please try again.");
+                System.out.println();
+            }
+
+            menu(console);
+            option = console.nextLine();
+        }
+    }
+
+    private static void menu(Scanner console) {
+        System.out.println("What would you like to do? Choose an option in brackets.");
+        System.out.println("  [add] item");
+        System.out.println("  [contains] item");
+        System.out.println("  [print] my collection");
+        System.out.println("  [save] my collection");
+        System.out.println("  [creative] extension");
+        System.out.println("  [quit] program");
+    }
+}
+
+public class CollectionManager {
+    public BirthdayCardNode overallRoot;
+
+    // Behavior:
+    // - This method creates a new CollectionManager with nothing in it
+    // Exception:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - None
+    public CollectionManager()
+    {
+        overallRoot = null;
+    }
+
+    // Behavior:
+    // - This method reads from a file to create a CollectionManager
+    // Exception:
+    // - IllegalArgumentException: If the scanner does not exist
+    // Returns:
+    // - None
+    // Parameters:
+    // - input: scanner from the file to make the CollectionManager
+    public CollectionManager(Scanner input)
+    {
+        if(input == null)
+        {
+            throw new IllegalArgumentException();
+        }
+        overallRoot = makeTree(input);
+    }
+
+    // Behavior:
+    // - This is the method that creates the CollectionManager in pre order from a file. First,
+    //   if checks if the next line in the file exists. If so, if the next line is empty, the 
+    //   node is null. If not, it will automatically get the Birthday Card fields, and makes a
+    //   new Birthday Card, and BirthdayCardNode. Then traverse left and right.
+    // Exception:
+    // - None
+    // Returns:
+    // - BirthdayCardNode: The node to assign to the root
+    // Parameters:
+    // - input: scanner from the file to make the CollectionManager
+    private BirthdayCardNode makeTree(Scanner input)
+    {
+        if(!input.hasNextLine())
+        {
+            return null;
+        }
+        String line = input.nextLine();
+        if(line.length() == 0)
+        {
+            return null;
+        }
+        String color = line.substring("Color: ".length());
+        int height = Integer.parseInt(input.nextLine().substring("Height: ".length()));
+        int width = Integer.parseInt(input.nextLine().substring("Width: ".length()));
+        double price = Double.parseDouble(input.nextLine().substring("Price: $".length()));
+        String message = input.nextLine().substring("Message: ".length());
+        boolean image = Boolean.parseBoolean(input.nextLine().substring("Has a funny image: ".length()));
+
+        BirthdayCard temp = new BirthdayCard(color, height, width, price, message, image);
+        BirthdayCardNode cur = new BirthdayCardNode(temp);
+
+        if(input.hasNextLine())
+        {
+            cur.left = makeTree(input);
+            cur.right = makeTree(input);
+        }
+        return cur;
+    }
+
+    // Behavior:
+    // - This method adds a birthday card in the correct place in the CollectionManager
+    //   based on its standing (compareTo) to the other Birthday cards in the CollectionManager
+    // Exception:
+    // - IllegalArgumentException: If the BirthdayCard to add doesn't exist
+    // Returns:
+    // - None
+    // Parameters:
+    // - card: the card to add.
+    public void add(BirthdayCard card)
+    {
+        if(card == null)
+        {
+            throw new IllegalArgumentException();
+        }
+        overallRoot = add(card, overallRoot);
+    }
+
+    // Behavior:
+    // - This method adds the Birthday card to the CollectionManager. If first checks if the
+    //   the current node is null, then it will add a node with the card. Else if the current
+    //   node is equal to the card to add, then the CollectionManager already contains the
+    //   card and it returns the node to preserve the structure of the CollectionManager. Else
+    //   the card is compared to the current card, if the number returned is less than 0,
+    //   traverse to the right, else traverse to the left. In the end, return the current to
+    //   save the CollectionManager.
+    // Exception:
+    // - None
+    // Returns:
+    // - BirthdayCardNode: The saved CollectionManager, with the added BirthdayCardNode
+    // Parameters:
+    // - card: The Birthday card to add
+    // - curr: The current BirthdayCardNode being checked
+    private BirthdayCardNode add(BirthdayCard card, BirthdayCardNode curr)
+    {
+        if(curr == null)
+        {
+            return new BirthdayCardNode(card);
+        }
+        else if(curr.card.equals(card))
+        {
+            return curr;
+        }
+        else
+        {
+            System.out.println(card.compareTo(curr.card));
+            if(card.compareTo(curr.card) < 0)
+            {
+                curr.right = add(card, curr.right);
+            }
+            else
+            {
+                curr.left = add(card, curr.left);
+            }
+            return curr;
+        }
+    }
+
+    // Behavior:
+    // - This method checks the CollectionManager to see if it contains a specific
+    //   Birthday card
+    // Exception:
+    // - IllegalArgumentException: If the card to check for doesn't exist
+    // Returns:
+    // - boolean: True if the CollectionManager contains the card, false if not
+    // Parameters:
+    // - card: the card to check for in CollectionManager
+    public boolean contains(BirthdayCard card)
+    {
+        if(card == null)
+        {
+            throw new IllegalArgumentException();
+        }
+        return contains(card, overallRoot);
+    }
+
+    // Behavior:
+    // - This method checks the CollectionManager for a given card. If the current node is null,
+    //   the card doesn't exist in the CollectionManager. Otherwise, the compareTo method is
+    //   utilized. If it is 0, the card has been found, the true is returned, otherwise the
+    //   CollectionManager is traversed to the right or left according to standing.
+    // Exception:
+    // - None
+    // Returns:
+    // - boolean: True if the CollectionManager contains the card, false if not
+    // Parameters:
+    // - card: the card to check for
+    // - cur: the current node of CollectionManager
+    private boolean contains(BirthdayCard card, BirthdayCardNode cur)
+    {
+        if(cur == null)
+        {
+            return false;
+        }
+        else
+        {
+            int compare = card.compareTo(cur.card);
+            if(compare == 0)
+            {
+                return true;
+            }
+            else if(compare > 0)
+            {
+                return contains(card, cur.left);
+            }
+            else
+            {
+                return contains(card, cur.right);
+            }
+        }
+    }
+
+    // Behavior:
+    // - This method returns the string representation of the CollectionManager. It givens the
+    //   string version of each of the nodes in pre order fashion
+    // Exception:
+    // - None
+    // Returns:
+    // - String: the string representation of the CollectionManager
+    // Parameters:
+    // - None
+    public String toString()
+    {
+        return toString("", overallRoot);
+    }
+
+    // Behavior:
+    // - This method returns the string representation of the CollectionManager. It givens the
+    //   string version of each of the nodes in pre order fashion using recursion. While the
+    //   current node is not null, it will get the string verison of the current node, then the
+    //   left and then the right.
+    // Exception:
+    // - None
+    // Returns:
+    // - String: the string representation of the CollectionManager. It givens the
+    //   string version of each of the nodes in pre order fashion
+    // Parameters:
+    // - str: The current state of the string verision to add to 
+    // - cur: the current node
+    private String toString(String str, BirthdayCardNode cur)
+    {
+        if(cur != null)
+        {
+            str += cur.toString() + '\n';
+            str = toString(str, cur.left);
+            str = toString(str, cur.right);
+        }
+        return str;
+    }
+
+    // Behavior:
+    // - This method saves the CollectionManager to a file in preorder format
+    // Exception:
+    // - IllegalArgumentException: If the output writer (PrintStream) doesn't exist
+    // Returns:
+    // - None
+    // Parameters:
+    // - output: THe PrintStream that writes the CollectionManager to the file
+    public void save(PrintStream output)
+    {
+        if(output == null)
+        {
+            throw new IllegalArgumentException();
+        }
+        save(output, overallRoot);
+    }
+
+    // Behavior:
+    // - This method tranverses the CollectionManager preorder and prints it to a file. If the
+    //   the node is null, the file will get a empty line. Else, it will lay out the fields of
+    //   the card of the node, before traversing to the left and the right
+    // Exception:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - output: The PrintStream to the file
+    // - cur: the current node of the CollectionManager to print to the file
+    private void save(PrintStream output, BirthdayCardNode cur)
+    {
+        if(cur == null)
+        {
+            output.println();
+        }
+        else
+        {
+            output.println("Color: " + cur.card.getColor());
+            output.println("Height: " + cur.card.getHeight());
+            output.println("Width: " + cur.card.getWidth());
+            output.println("Price: $" + cur.card.getPrice());
+            output.println("Message: " + cur.card.getMessage());
+            output.println("Has a funny image: " + cur.card.getHasFunnyImage());
+            save(output, cur.left);
+            save(output, cur.right);
+        }
+    }
+
+    // Behavior:
+    // - This method filters out birthday cards that are less than or equal to a given price
+    //   and a specific area or greater.
+    // Exception:
+    // - IllegalArgumentException: if the given price and area is less than or equal to zero
+    // Returns:
+    // - List<BirthdayCard>: The birthday cards that match the requirements
+    // Parameters:
+    // - price: the maximum price
+    // - area: the minimum area
+    public List<BirthdayCard> filter(double price, int area)
+    {
+        if(price <= 0.0 || area <= 0)
+        {
+            throw new IllegalArgumentException();
+        }
+        List<BirthdayCard> filtered = new ArrayList<>();
+        filtered = filter(price, area, overallRoot, filtered);
+        return filtered;
+    }
+
+    // Behavior:
+    // - This is the method that finds the cards that are less than or equal to the price given
+    //   and greater than or equal to the area given. It traverses the tree and adds a birthday
+    //   card if it fits both of the two requirements. It will return the list in the end
+    // Exception:
+    // - None
+    // Returns:
+    // - List<BirthdayCard>: the cards that are less than or equal to the price given
+    //   and greater than or equal to the area given.
+    // Parameters:
+    // - price: the maximum price
+    // - area: the minimum area
+    // - cur: the current node
+    // - filtered: the list of cards that fit the requirements
+    private List<BirthdayCard> filter(double price, int area, BirthdayCardNode cur, List<BirthdayCard> filtered)
+    {
+        if(cur == null)
+        {
+            return filtered;
+        }
+        else if(cur.card.getPrice() <= price && cur.card.getArea() >= area)
+        {
+            filtered.add(cur.card);
+        }
+        filtered = filter(price, area, cur.left, filtered);
+        filtered = filter(price, area, cur.right, filtered);
+        return filtered;
+    }
+
+    // Behavior:
+    // - This method checks if this CollectionManager and another are equal to each other
+    //   by content. It will return true, if so.
+    // Exception:
+    // - None
+    // Returns:
+    // - boolean: true if the contents are equal, false if not
+    // Parameters:
+    // - other: the CollectionManager to compare to current one
+    public boolean equals(CollectionManager other)
+    {
+        if(other == null)
+        {
+            return false;
+        }
+        return equals(this.overallRoot, other.overallRoot);
+    }
+
+    // Behavior:
+    // - This method checks if the two CollectionManager's contents are equal. it checks if 
+    //   both the current nodes exist or both don't exist. If not, return false. Then it checks
+    //   the nodes are equal, if not, false, else traverse the left nodes, and then the right nodes
+    //   return true if they are equal in the end.
+    // Exception:
+    // - None
+    // Returns:
+    // - boolean: true if the contents are equal, false if not
+    // Parameters:
+    // - thisCur: current node in this CollectionManager
+    // - otherCur: current node in other CollectionManager
+    private boolean equals(BirthdayCardNode thisCur, BirthdayCardNode otherCur)
+    {
+        if((thisCur == null && otherCur != null) || (thisCur != null && otherCur == null))
+        {
+            return false;
+        }
+        else if(thisCur == null && otherCur == null)
+        {
+            return true;
+        }
+        else if(!thisCur.equals(otherCur))
+        {
+            return false;
+        }
+        return equals(thisCur.left, otherCur.right) && equals(thisCur.right, otherCur.right);
+    }
+
+    // This class is the node of the CollectionManager and stores the BirthdayCards.
+    public static class BirthdayCardNode
+    {
+        public final BirthdayCard card;
+        public BirthdayCardNode left;
+        public BirthdayCardNode right;
+
+        // Behavior:
+        // - This method creates a new BirthdayCardNode with a left and right
+        // Exception:
+        // - None
+        // Returns:
+        // - None
+        // Parameters:
+        // - card: the Birthday card to store in the node
+        // - left: the node to the left
+        // - right: the node to the right
+        public BirthdayCardNode(BirthdayCard card, BirthdayCardNode left, BirthdayCardNode right)
+        {
+            this.card = card;
+            this.left = left;
+            this.right = right;
+        }
+
+        // Behavior:
+        // - This method creates a solitary BirthdayCardNode with just the card
+        // Exception:
+        // - None
+        // Returns:
+        // - None
+        // Parameters:
+        // - card: the Birthday card to store in the node
+        public BirthdayCardNode(BirthdayCard card)
+        {
+            this(card, null, null);
+        }
+
+        // Behavior:
+        // - This method returns the string representation of the node, mainly the card
+        // Exception:
+        // - None
+        // Returns:
+        // - String: The string representation of the card in the node
+        // Parameters:
+        // - None
+        public String toString()
+        {
+            return card.toString();
+        }
+
+        // Behavior:
+        // - This method checks if the other node equal to this one, content wise
+        // Exception:
+        // - None
+        // Returns:
+        // - boolean: true if the contents are equal, false if not
+        // Parameters:
+        // - other: the other BirthdayCardNode to compare contents with
+        public boolean equals(BirthdayCardNode other)
+        {
+            return this.card.equals(other.card);
+        }
+    }
+}
+
+public class BirthdayCard implements Comparable<BirthdayCard> {
+    public static final String[] COLORS ={"red", "orange", "yellow", "green", "blue", "purple",
+            "white", "black", "grey"};
+
+    private final String color;
+    private final int area; // square inches
+    private final int height;
+    private final int width;
+    private final double price; // dollars.cents
+    private final String message;
+    private final boolean hasFunnyImage;
+
+    // Behavior:
+    // - This method creates a new Birthday Card, by taking in all the dimensions of the card the
+    //   user wants, color, height, width, price, message, and whether if has a funny image
+    // Exception:
+    // - IllegalArgumentException: if the height, width, or price is less than or equal to zero or
+    //   the color given for the card is not within the valid colors determined already
+    // Returns:
+    // - None
+    // Parameters:
+    // - color: the color of the card
+    // - height: the height of the card
+    // - width: the width of the card
+    // - price: the price of the card
+    // - message: the message of the card
+    // - hasFunnyImage: whther the card has a funny image or not
+    public BirthdayCard(String color, int height, int width, double price, String message, boolean hasFunnyImage)
+    {
+        if(height <= 0 || width <= 0 || price <= 0.0 || !BirthdayCard.checkColor(color))
+        {
+            throw new IllegalArgumentException();
+        }
+        this.color = color;
+        this.area = height * width;
+        this.height = height;
+        this.width = width;
+        this.price = price;
+        this.message = message;
+        this.hasFunnyImage = hasFunnyImage;
+    }
+
+    // Behavior:
+    // - This method creates a new Birthday card sheerly from console input. 
+    // Exception:
+    // - IllegalArgumentException: if the Scanner does not exist
+    // Returns:
+    // - Birthday Card: Made from the user input when prompted for card fields
+    // Parameters:
+    // - input: Scanner reading from the console
+    public static BirthdayCard parse(Scanner input)
+    {
+        if(input == null)
+        {
+            throw new IllegalArgumentException();
+        }
+        System.out.print("What is the color of the card? ");
+        String color = input.nextLine();
+
+        System.out.print("What is the height of the card? ");
+        int height = Integer.parseInt(input.nextLine());
+
+        System.out.print("What is the width of the card? ");
+        int width = Integer.parseInt(input.nextLine());
+
+        System.out.print("What is the price of the card? ");
+        double price = Double.parseDouble(input.nextLine());
+
+        System.out.print("What is written on the card? ");
+        String message = input.nextLine();
+
+        System.out.print("Does the card have a funny image?");
+        boolean hasImage = Boolean.parseBoolean(input.nextLine());
+
+        return new BirthdayCard(color, height, width, price, message, hasImage);
+    }
+
+    // Behavior:
+    // - This method returns the string representation of the Birthday card. I t states the color,
+    //   area in square inches, the message of the card, the price in dollars.cents, and whether
+    //   it has a funny image.
+    // Exception:
+    // - None
+    // Returns:
+    // - String: the string representation of the current card
+    // Parameters:
+    // - None
+    public String toString()
+    {
+        return "This " + this.color + ", " + this.area + " square inch, card is saying:\n"
+                + message + "\nIt costs $" + price + "\nDoes if have a funny image? " + hasFunnyImage;
+    }
+
+    // Behavior:
+    // - This method checks whether the current card is equal to another card.
+    // Exception:
+    // - None
+    // Returns:
+    // - boolean: true if the two are equal, false if not
+    // Parameters:
+    // - o: the other Object (ideally Birthday Card) to compare to the current card
+    public boolean equals(Object o)
+    {
+        if(o == this)
+        {
+            return true;
+        }
+        else if(o instanceof BirthdayCard)
+        {
+            BirthdayCard other = (BirthdayCard) o;
+            return this.color.equals(other.color)
+                    && this.area == other.area
+                    && this.price == other.price
+                    && this.message.equals(other.message)
+                    && this.hasFunnyImage == other.hasFunnyImage;
+        }
+        return false;
+    }
+
+    // Behavior:
+    // - This method returns a hash code number of a Birthday Card based on field values
+    //   of the Birthday Card
+    // Exception:
+    // - None
+    // Returns:
+    // - int: the unique hash code number of the BirthdayCard
+    // Parameters:
+    // - None
+    public int hashCode()
+    {
+        int hash = 0;
+        hash += 31 * getColorIndex(this.color);
+        hash += 31 * this.area;
+        hash += 31 * this.price;
+        for(int i = 0; i < this.message.length(); i++)
+        {
+            hash += 31 * hash + (int)(this.message.charAt(i));
+        }
+        hash += 31 * Boolean.hashCode(this.hasFunnyImage);
+        return hash;
+    }
+
+    // Behavior:
+    // - This method checks if the color given by the user is a valid color in the predetermined
+    //   list of colors. It automatically makes the string to lower case so that there is no false
+    //   alarms.
+    // Exception:
+    // - None
+    // Returns:
+    // - boolean
+    // Parameters:
+    // - color: the color of the card given by the user to check.
+    private static boolean checkColor(String color)
+    {
+        color = color.toLowerCase();
+        for(String c: COLORS)
+        {
+            if(c.equals(color))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Behavior:
+    // - This method finds which index in the list, a certain color is in the list.
+    //   If the color doesn't exist, then -1 is returned.
+    // Exception:
+    // - None
+    // Returns:
+    // - int: the index the color in the list, or -1 if not
+    // Parameters:
+    // - color: the color to find in the list
+    private static int getColorIndex(String color)
+    {
+        color = color.toLowerCase();
+        for(int i = 0; i < COLORS.length; i++)
+        {
+            if(COLORS[i].equals(color))
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    // Behavior:
+    // - This method returns the color of the card
+    // Exception:
+    // - None
+    // Returns:
+    // - String: the color of the card
+    // Parameters:
+    // - None
+    public String getColor()
+    {
+        return this.color;
+    }
+
+    // Behavior:
+    // - This method gets the height of the card
+    // Exception:
+    // - None
+    // Returns:
+    // - int: the height of the card
+    // Parameters:
+    // - None
+    public int getHeight()
+    {
+        return this.height;
+    }
+
+    // Behavior:
+    // - This method gets the width of the card
+    // Exception:
+    // - None
+    // Returns:
+    // - int: the width of the card
+    // Parameters:
+    // - None
+    public int getWidth()
+    {
+        return this.width;
+    }
+
+    // Behavior:
+    // - This method gets the area of the card
+    // Exception:
+    // - None
+    // Returns:
+    // - int: the area of the card
+    // Parameters:
+    // - None
+    public int getArea()
+    {
+        return this.area;
+    }
+
+    // Behavior:
+    // - This method returns the price of the card
+    // Exception:
+    // - None
+    // Returns:
+    // - double: the price of the card
+    // Parameters:
+    // - None
+    public double getPrice()
+    {
+        return this.price;
+    }
+
+    // Behavior:
+    // - This method returns the message of the card
+    // Exception:
+    // - None
+    // Returns:
+    // - String: the message of the card
+    // Parameters:
+    // - None
+    public String getMessage()
+    {
+        return this.message;
+    }
+
+    // Behavior:
+    // - This method returns whether the card as a funny image or not
+    // Exception:
+    // - None
+    // Returns:
+    // - boolean: whether the card as a funny image or not
+    // Parameters:
+    // - None
+    public boolean getHasFunnyImage()
+    {
+        return this.hasFunnyImage;
+    }
+
+    // Behavior:
+    // - This method compares two Birthday cards together by comparing first the color indexes,
+    //   area, price, message, and finally (if it gets that far) whether they have funny images.
+    //   It will then return a number to indicate the other birthday card's standing relative to
+    //   the current. Greater than 1, means it is a higher standing, less than one is lower. Zero
+    //   is exactly equal
+    // Exception:
+    // - None
+    // Returns:
+    // - int: a number to indicate the other birthday card's standing relative to
+    //   the current. Greater than 1, means it is a higher standing, less than one is lower. Zero
+    //   is exactly equal
+    // Parameters:
+    // - other: the other Birthday Card to compare to the current one
+    @Override
+    public int compareTo(BirthdayCard other) {
+        if(!this.color.equals(other.color))
+        {
+            return BirthdayCard.getColorIndex(other.color) - 
+                    BirthdayCard.getColorIndex(this.color);
+        }
+        else if(this.area != other.area)
+        {
+            return other.area - this.area;
+        }
+        else if(this.price != other.price)
+        {
+            return Double.compare(other.price, this.price);
+        }
+        else if(!this.message.equals(other.message))
+        {
+            return this.message.compareTo(other.message);
+        }
+        else
+        {
+            Boolean compareOne = this.hasFunnyImage;
+            Boolean compareTwo = other.hasFunnyImage;
+            return compareOne.compareTo(compareTwo);
+        }
+    }
+}

@@ -1,0 +1,339 @@
+import java.util.*;
+import java.text.SimpleDateFormat;
+
+public class Repository {
+     private String name;
+     public Commit head;
+
+    // Behavior:
+    // - This creates a new Repository object. It takes in a name, and starts the list as empty
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - name: The name of the version list
+     public Repository(String name)
+     {
+        if(name == null || name.equals(""))
+        {
+            throw new IllegalArgumentException();
+        }
+        this.name = name;
+        head = null;
+     }
+
+    // Behavior:
+    // - This method returns the most recent verion's number id to the user
+    // Exceptions:
+    // - None
+    // Returns:
+    // - String: If the list is empty, null, else the most recent version's number id
+    // Parameters:
+    // - None
+     public String getRepoHead()
+     {
+        if(head == null)
+        {
+            return null;
+        }
+        return head.id;
+     }
+
+    // Behavior:
+    // - This method returns the number of versions that are in the list
+    // Exceptions:
+    // - None
+    // Returns:
+    // - int: 0 if the list is empty, else the size of the list
+    // Parameters:
+    // - None
+     public int getRepoSize()
+     {
+        int size = 0;
+        Commit temp = head;
+        while(temp != null)
+        {
+            size++;
+            temp = temp.past;
+        }
+        return size;
+     }
+
+    // Behavior:
+    // - This method returns the version list in a user friendly way. The name of the list and
+    //   what version is at the front. If the verison list is empty, the method returns the name
+    //   of the list and the message " - No Commits", indicating that there are no versions in
+    //   the list.
+    // Exceptions:
+    // - None
+    // Returns:
+    // - String: The name of the list, and what version is in the front, if any
+    // Parameters:
+    // - None
+     public String toString()
+     {
+        if(head == null)
+        {
+            return name + " - No commits";
+        }
+        return name + " - Current head: " + head.toString();
+     }
+
+    // Behavior:
+    // - This method gets the number of versions in the list the user specifies. If the number is
+    //   greater than the number of versions in the list, then the whole list is printed out.
+    //   Otherwise only the number of versions the client wants will be printed out. 
+    // Exceptions:
+    // - IllegalArgumentException: If the number entered is a negative number or 0
+    // Returns:
+    // - String: The specified number of versions (or the whole list) in a String format, user
+    //   friendly
+    // Parameters:
+    // - n: the number of versions to print out
+     public String getHistory(int n)
+     {
+        if(n <= 0)
+        {
+            throw new IllegalArgumentException();
+        }
+        Commit temp = head;
+        String message = "";
+        int index = 1;
+        while(temp != null && index <= n)
+        {
+            message += temp.toString() + "\n";
+            temp = temp.past;
+            index++;
+        }
+        return message;
+     }
+
+    // Behavior:
+    // - This method checks the list of versions to see if a specific version exists in the list
+    // Exceptions:
+    // - IllegalArgumentException: If the identifying id is not valid = null
+    // Returns:
+    // - boolean: Whether the specific version exists in the list or not
+    // Parameters:
+    // - targetId: the id of the version the client wants to check the list for
+     public boolean contains(String targetId)
+     {
+        if(targetId == null)
+        {
+            throw new IllegalArgumentException();
+        }
+        Commit temp = head;
+        while(temp != null)
+        {
+            if(temp.id.equals(targetId))
+            {
+                return true;
+            }
+            temp = temp.past;
+        }
+        return false;
+     }
+
+    // Behavior:
+    // - This class adds a new version to the list and returns the version's number. If the list
+    //   is empty, this method will make the list start to contain versions.
+    // Exceptions:
+    // - IllegalArgumentException: If the message of the new version doesn't exist
+    // Returns:
+    // - String: The number of the latest version
+    // Parameters:
+    // - message: The message of the latest version to be added to the list
+     public String commit(String message)
+     {
+        if(message == null)
+        {
+            throw new IllegalArgumentException();
+        }
+        head = new Commit(message, head);
+        return head.id;
+     }
+
+    // Behavior:
+    // - This method removes a specific version from the list by inputing the identifying number
+    //   of the version to remove.
+    // Exceptions:
+    // - IllegalArgumentException: If the list doesn't contain the verison that is to be dropped
+    // Returns:
+    // - boolean: Whether the removal of the verison was successful or not. It is unsuccessful
+    //   if the version that the user has identified to be removed doesn't exist in the list
+    // Parameters:
+    // - targetId: The identifying number of the version to be removed
+     public boolean drop(String targetID)
+     {
+        if(this.contains(targetID))
+        {
+            if(head.id.equals(targetID))
+            {
+                head = head.past;
+                return true;
+            }
+            Commit temp = head;
+            while(temp.past != null)
+            {
+                if(temp.past.id.equals(targetID))
+                {
+                    temp.past = temp.past.past;
+                    return true;
+                }
+                temp = temp.past;
+            }
+        }
+        return false;
+     }
+
+    // Behavior:
+    // - This method merges two Repositories together into one by order of most recent version.
+    //   If the current list is empty, all of the other list's version are transfered over. If
+    //   the other list is empty, nothing happens. The method then uses a form of merge sort To
+    //   order the versions in the most recent first way.In the end, the othre list will be empty
+    //   because all of its versions have been combined into the current list.
+    // Exceptions:
+    // - IllegalArgumentException: If the other repository is null
+    // Returns:
+    // - None
+    // Parameters:
+    // - other: The other repository to merge versions into this list
+    public void synchronize(Repository other)
+    {
+        if(other == null)
+        {
+            throw new IllegalArgumentException();
+        }
+        if(other.getRepoSize() != 0)
+        {
+            if(this.getRepoSize() == 0)
+            {
+                this.head = other.head;
+                other.head = null;
+            }
+            else
+            {
+                Commit otherTemp = other.head;
+                Commit thisTemp = this.head;
+                
+                long otherTime = otherTemp.timeStamp;
+                long thisTime = thisTemp.timeStamp;
+
+                if(otherTime > thisTime)
+                {
+                    this.head = otherTemp;
+                    other.head = thisTemp;
+                    otherTemp = other.head;
+                    thisTemp = this.head;
+                }
+                while(otherTemp != null && thisTemp.past != null)
+                {
+                    otherTime = otherTemp.timeStamp;
+                    thisTime = thisTemp.past.timeStamp;
+                    if(thisTime > otherTime)
+                    {
+                        thisTemp = thisTemp.past;
+                    }
+                    else
+                    {
+                        Commit curr = thisTemp.past;
+                        thisTemp.past = otherTemp;
+                        otherTemp = otherTemp.past;
+                        thisTemp.past.past = curr;
+                        thisTemp = thisTemp.past;
+                    }
+                }
+                if(otherTemp != null)
+                {
+                    thisTemp.past = otherTemp;
+                    otherTemp = otherTemp.past;
+                }
+                other.head = null;
+            }
+        }
+    }
+
+    /**
+     * DO NOT MODIFY
+     * A class that represents a single commit in the repository.
+     * Commits are characterized by an identifier, a commit message,
+     * and the time that the commit was made. A commit also stores
+     * a reference to the immediately previous commit if it exists.
+     *
+     * Staff Note: You may notice that the comments in this 
+     * class openly mention the fields of the class. This is fine 
+     * because the fields of the Commit class are public. In general, 
+     * be careful about revealing implementation details!
+     */
+    public static class Commit {
+
+        private static int currentCommitID;
+
+        /**
+         * The time, in milliseconds, at which this commit was created.
+         */
+        public final long timeStamp;
+
+        /**
+         * A unique identifier for this commit.
+         */
+        public final String id;
+
+        /**
+         * A message describing the changes made in this commit.
+         */
+        public final String message;
+
+        /**
+         * A reference to the previous commit, if it exists. Otherwise, null.
+         */
+        public Commit past;
+
+        /**
+         * Constructs a commit object. The unique identifier and timestamp
+         * are automatically generated.
+         * @param message A message describing the changes made in this commit. Should be non-null.
+         * @param past A reference to the commit made immediately before this
+         *             commit.
+         */
+        public Commit(String message, Commit past) {
+            this.id = "" + currentCommitID++;
+            this.message = message;
+            this.timeStamp = System.currentTimeMillis();
+            this.past = past;
+        }
+
+        /**
+         * Constructs a commit object with no previous commit. The unique
+         * identifier and timestamp are automatically generated.
+         * @param message A message describing the changes made in this commit. Should be non-null.
+         */
+        public Commit(String message) {
+            this(message, null);
+        }
+
+        /**
+         * Returns a string representation of this commit. The string
+         * representation consists of this commit's unique identifier,
+         * timestamp, and message, in the following form:
+         *      "[identifier] at [timestamp]: [message]"
+         * @return The string representation of this collection.
+         */
+        @Override
+        public String toString() {
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
+            Date date = new Date(timeStamp);
+
+            return id + " at " + formatter.format(date) + ": " + message;
+        }
+
+        /**
+        * Resets the IDs of the commit nodes such that they reset to 0.
+        * Primarily for testing purposes.
+        */
+        public static void resetIds() {
+            Commit.currentCommitID = 0;
+        }
+    }
+}

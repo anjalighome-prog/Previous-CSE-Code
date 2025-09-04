@@ -1,0 +1,205 @@
+import java.util.*;
+import java.io.*;
+
+public class MusicPlaylist {
+    
+    public static void main(String[] args)
+    {
+        Queue<String> playList = new LinkedList<>(); // plays in order
+        Stack<String> history = new Stack<>(); // most recent first
+        Scanner console = new Scanner(System.in);
+        String input = "";
+
+        System.out.println("Welcome to the CSE 122 Music Playlist!");
+
+        while(!(input.equalsIgnoreCase("Q")))
+        {
+            // Main Menu
+            System.out.println("(A) Add song");
+            System.out.println("(P) Play song");
+            System.out.println("(Pr) Print history");
+            System.out.println("(C) Clear history");
+            System.out.println("(D) Delete from history");
+            System.out.println("(Q) Quit");
+            System.out.println();
+
+            System.out.print("Enter your choice: ");
+            input = console.nextLine();
+
+            // Commands
+            if(input.equalsIgnoreCase("A"))
+            {
+                add(console, playList);
+            }
+            else if(input.equalsIgnoreCase("P"))
+            {
+                play(playList, history);
+            }
+            else if(input.equalsIgnoreCase("Pr"))
+            {
+                print(history);
+            }
+            else if(input.equalsIgnoreCase("C"))
+            {
+                history.clear();
+            }
+            else if(input.equalsIgnoreCase("D"))
+            {
+                delete(history, console);
+            }
+            System.out.println();
+        }
+    }
+
+    // Behavior:
+    // - This method takes in user input for a song and adds it to the playlist
+    // Exception:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - console: Scans the console for user input for the song
+    // - playList: The queue of songs
+    public static void add(Scanner console, Queue<String> playList)
+    {
+        System.out.print("Enter song name: ");
+        String input = console.nextLine();
+        playList.add(input); // adds song
+        System.out.println("Successfully added " + input);
+    }
+
+    // Behavior:
+    // - This method plays the first song in the playlist and adds it to the history
+    // Exception:
+    // - IllegalStateException if the playlist is empty
+    // Returns:
+    // - None
+    // Parameters:
+    // - playList: the queue of songs in playlist
+    // - history: the stack of songs with the most recently played at the top
+    public static void play(Queue<String> playList, Stack<String> history) throws IllegalStateException
+    {
+        if(playList.isEmpty()) // checks if the queue is empty
+        {
+            throw new IllegalStateException();
+        }
+        String input = playList.remove();
+        System.out.println("Playing song: " + input);
+        history.push(input);
+    }
+
+    // Behavior:
+    // - This prints the history of songs played
+    // Exception:
+    // - IllegalStateException if there are no songs in history
+    // Returns:
+    // - None
+    // Parameters:
+    // - history: Stack of songs that have been played
+    public static void print(Stack<String> history) throws IllegalStateException
+    {
+        if(history.isEmpty()) // checks if empty
+        {
+            throw new IllegalStateException();
+        }
+        Queue<String> sub = new LinkedList<>();
+
+        while(!(history.isEmpty()))
+        {
+            String song = history.pop();
+            sub.add(song);
+            System.out.println("\t" + song);
+        }  
+        // sequence to preserve history order
+        qToStack(sub, history);
+        sToQueue(history, sub);
+        qToStack(sub, history);
+    }
+
+    // Behavior:
+    // - This transfers data from a queue to a stack
+    // Exception:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - q: Queue with Data
+    // - s: Stack to fill
+    public static void qToStack(Queue<String> q, Stack<String> s)
+    {
+        while(!q.isEmpty())
+        {
+            s.push(q.remove());
+        }
+    }
+
+    // Behavior:
+    // - This transfers data from a stack to a queue
+    // Exception:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - s: Stack with data
+    // - q: Queue to fill
+    public static void sToQueue(Stack<String> s, Queue<String> q)
+    {
+        while(!s.isEmpty())
+        {
+            q.add(s.pop());
+        }
+    }
+
+    // Behavior:
+    // - This deletes certain numbers of songs from history given the position of extraction
+    // Exception:
+    // - IllegalArgumentException if the number of songs asked to delete is more than the size of 
+    //    history
+    // Returns:
+    // - None
+    // Parameters:
+    // - history: stack of songs that have been played
+    // - console: Scans console for user input for the number of songs to be deleted
+    public static void delete(Stack<String> history, Scanner console) throws IllegalArgumentException
+    {
+        System.out.println("A positive number will delete from recent history.");
+        System.out.println("A negative number will delete from the beginning of history.");
+        System.out.print("Enter number of songs to delete: ");
+        int index = Integer.parseInt(console.nextLine()); // gets input
+        Queue<String> sub = new LinkedList<>();
+        if(index != 0) // won't do anything on 0
+        {
+            if(Math.abs(index) > history.size()) // checks to see if index is more that history size
+            {
+                throw new IllegalArgumentException();
+            }
+            if(index < 0)
+            {
+                int untilTo = history.size() - Math.abs(index);
+                for(int i = 1; i <= untilTo; i++) // preserves songs before
+                {
+                    sub.add(history.pop());
+                }
+                for(int j = 0; j < Math.abs(index); j++) // discards
+                {
+                    history.pop();
+                }
+                while(!history.isEmpty()) // preserves songs after
+                {
+                    sub.add(history.pop());
+                }
+                // history order preservation sequence
+                qToStack(sub, history);
+                sToQueue(history, sub);
+                qToStack(sub, history);
+            }
+            else
+            {
+                for(int j = 0; j < index; j++) // removes from the front
+                {
+                    history.pop();
+                }
+            }
+        }
+    }    
+}

@@ -1,0 +1,217 @@
+import java.util.*;
+import java.io.*;
+
+public class TodoListManager {
+    public static final boolean EXTENSION_FLAG = false;
+
+    public static void main(String[] args) throws FileNotFoundException {
+
+        List<String> todo = new ArrayList<>();
+        List<String> complete = new ArrayList<>();
+        Scanner console = new Scanner(System.in);
+        String given = "";
+
+        System.out.println("Welcome to your TODO List Manager!");
+
+        while(!(given.equalsIgnoreCase("Q")))
+        {
+            System.out.println("What would you like to do?");
+            System.out.print("(A)dd TODO, (M)ark TODO as done, (L)oad TODOs, (S)ave TODOs, (Q)uit? ");
+            given = console.nextLine();
+
+            if(given.equalsIgnoreCase("A"))
+            {
+                addItem(console, todo);
+                printTodos(todo);
+            }
+            else if(given.equalsIgnoreCase("M"))
+            {
+                markItemAsDone(console, todo, complete);
+                printTodos(todo);
+            }
+            else if(given.equalsIgnoreCase("L"))
+            {
+                loadItems(console, todo);
+                printTodos(todo);
+            }
+            else if(given.equalsIgnoreCase("S"))
+            {
+                saveItems(console, todo);
+                printTodos(todo);
+            }
+            else if(!(given.equalsIgnoreCase("Q")))
+            {
+                System.out.println("Unknown input: " + given);
+                printTodos(todo);
+            }
+        }
+        if(EXTENSION_FLAG)
+        {
+            completedTasks(complete);
+        }
+    }
+
+    // Behavior:
+    // - This method prints out the tasks that are in the todo list
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None, just prints to the console
+    // Parameters:
+    // - todos: the tasks that are currently in the todo list
+    public static void printTodos(List<String> todos)
+    {
+        System.out.println("Today's TODOs:");
+        if(todos.size() == 0) // if the list is empty
+        {
+            System.out.println("  You have nothing to do yet today! Relax!");
+        }
+        else // prints them line by line with ordering
+        {
+            for(int i = 0; i < todos.size(); i++)
+            {
+                System.out.println(" " + (i + 1) + ": " + todos.get(i));
+            }
+        }
+    }
+
+    // Behavior:
+    // - This method adds an item to the list
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None, just prints to the console to prompt the user input
+    // Parameters:
+    // - console: Scanner of the console to recieve user input
+    // - todos: the tasks that are currently in the todo list
+    public static void addItem(Scanner console, List<String> todos)
+    {
+        System.out.print("What would you like to add? ");
+        String input = console.nextLine();
+        if(todos.size() == 0) // automatically adds to the end
+        {
+            todos.add(input);
+        }
+        else
+        {
+            System.out.print("Where in the list should it be (1-" + (todos.size() + 1) 
+                                    + ")? (Enter for end): ");
+            String newInput = console.nextLine();
+            if(newInput.equals("")) // enter in the input
+            {
+                todos.add(input); // just adds to the end
+            }
+            else // adds to the specific index, but converts it to 0 base first
+            {
+                int index = Integer.parseInt(newInput);
+                todos.add(index - 1, input);
+            }
+        }
+    }
+
+    // Behavior:
+    // - This method removes a task from the list and adds it to the completed list
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None, just prints to the console to prompt user input
+    // Parameters:
+    // - console: Scanner of the console to recieve user input
+    // - todos: the tasks that are currently in the todo list
+    // - complete: the task that have been completed and removed from todo list
+    public static void markItemAsDone(Scanner console, List<String> todos, List<String> complete)
+    {
+        if(todos.size() > 0) // makes sure that nothing is removed from empty list
+        {
+            System.out.print("Which item did you complete (1-" + (todos.size())
+                            + ")? ");
+        }
+        else
+        {
+            System.out.println("All done! Nothing left to mark as done!");
+            return;
+        }
+        String input = console.nextLine();
+        int index = Integer.parseInt(input); // assuming given an Integer
+        complete.add(todos.get(index - 1)); // adds to completed tasks list
+        todos.remove(index - 1); // then removes it from todo list
+    }
+
+    // Behavior:
+    // - This method takes the tasks from an inputed file and fills the list with them
+    // Exceptions:
+    // - FileNotFoundException: if user inputed file does not exist
+    // Returns:
+    // - None, just prints to the console to prompt user for input
+    // Parameters:
+    // - console: Scanner of the console to recieve user input
+    // - todos: the tasks that are currently in the todo list
+    public static void loadItems(Scanner console, List<String> todos)
+                                throws FileNotFoundException
+    {
+        // recieving the file name
+        System.out.print("File name? ");
+        String fileInput = console.nextLine();
+        File input = new File(fileInput); // converting into a file
+
+        Scanner fileScan = new Scanner(input); // reads the file line by line
+        todos.clear(); // clears the todo list to fill with new tasks
+        while(fileScan.hasNextLine())
+        {
+            todos.add(fileScan.nextLine()); // fills the todo list with new tasks
+        }
+        fileScan.close(); // idk good protocol?
+    }
+
+    // Behavior:
+    // - This method prints out the tasks into a given file
+    // Exceptions:
+    // - FileNotFoundException: If user inputed file does not exist
+    // Returns:
+    // - None, just prints to the console to prompt user for input
+    // Parameters:
+    // - console: Scanner of the console to recieve user input
+    // - todos: the tasks that are currently in the todo list
+    public static void saveItems(Scanner console, List<String> todos)
+                                throws FileNotFoundException 
+    {
+        // recieves file name
+        System.out.print("File name? ");
+        String inputFile = console.nextLine();
+        File givenFile = new File(inputFile); // turns it into a file
+        PrintStream writer = new PrintStream(givenFile); 
+        
+        // writing to the file
+
+        for(int i = 0; i < todos.size(); i++)
+        {
+            writer.println(todos.get(i));
+        }        
+    }
+
+    // Behavior:
+    // - This method prints out the tasks that have been completed
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None, just prints to the console
+    // Parameters:
+    // - complete: the tasks that have been completed
+    public static void completedTasks(List<String> complete)
+    {
+        if(complete.size() == 0) // if it is empty :(
+        {
+            System.out.println("Looks like you tried today! Better luck tomorrow!");
+        }
+        else
+        {
+            System.out.println("Today was a productive day!");
+            System.out.println("What you accomplished today:");
+            for(int i = 0; i < complete.size(); i++)
+            {
+                // just prints in order with indexing
+                System.out.println((i + 1) + ": " + complete.get(i));
+            }
+        }
+    }
+}

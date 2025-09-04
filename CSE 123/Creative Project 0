@@ -1,0 +1,375 @@
+import java.io.*;
+import java.util.*;
+
+public class SearchClient {
+    public static final String BOOK_DIRECTORY = "./books";
+    private static final Random RAND = new Random();
+
+    // Some class constants you can play around with to give random ratings to the uploaded books!
+    public static final int MIN_RATING = 1;
+    public static final int MAX_RATING = 5;
+    public static final int MIN_NUM_RATINGS = 1;
+    public static final int MAX_NUM_RATINGS = 100;
+
+    public static void main(String[] args) throws FileNotFoundException {
+        Scanner console = new Scanner(System.in);
+        List<Media> media = new ArrayList<>(loadBooks());
+
+        Map<String, Set<Media>> index = createIndex(media);
+
+        System.out.println("Welcome to the CSE 123 Search Engine!");
+        String command = "";
+        while (!command.equalsIgnoreCase("quit")) {
+            System.out.println("What would you like to do? [Search, Rate, Quit]");
+            System.out.print("> ");
+            command = console.nextLine();
+
+            if (command.equalsIgnoreCase("search")) {
+                searchQuery(console, media, index);
+            } else if (command.equalsIgnoreCase("rate")) {
+                addRating(console, media);
+            } else if (!command.equalsIgnoreCase("quit")) {
+                System.out.println("Invalid command, please try again.");
+            }
+        }
+        System.out.println("See you next time!");
+    }
+
+    // Behavior:
+    // - The method takes all the words in the given Media, and maps them to which Medias
+    //   contained the word. The words inside the Medias will not be differentiated by case.
+    //   This rules out any extra keys being created or Medias from being incorrectly mapped.
+    // Exceptions:
+    // - None
+    // Returns:
+    // - Map<String, Set<Media>>: Each word (having been turned into lowercase words) mapped
+    //   to the Medias that contained the given word. 
+    // Parameters:
+    // - docs: The list of given Medias
+    public static Map<String, Set<Media>> createIndex(List<Media> docs)
+    {
+        Map<String, Set<Media>> result = new TreeMap<>();
+        for(int i = 0; i < docs.size(); i++)
+        {
+            // getting the words from the Book/Media
+            List<String> words = docs.get(i).getContent();
+            // going through the words
+            for(int j = 0; j < words.size(); j++)
+            {
+                String currWord = words.get(j).toLowerCase();
+                if(!(result.containsKey(currWord)))
+                {
+                    // making a new set for the new key for the map
+                    Set<Media> bookList = new HashSet<>();
+                    bookList.add(docs.get(i));
+                    result.put(currWord, bookList);
+                }
+                else
+                {
+                    result.get(currWord).add(docs.get(i));
+                }
+            }
+        }
+        return result;        
+    }
+
+    // Behavior:
+    // - The method returns the Medias that contain the words in the query given to the search
+    //   engine. These are sorted by the Media's rating and number of reviews (if needed)
+    // Exceptions:
+    // - None
+    // Returns:
+    // - Set<Media>: the Medias that suit the query
+    // Parameters:
+    // - index: the map of each word from the Medias mapped to the Medias that contained it
+    // - query: A given query to the search engine
+    public static Set<Media> search(Map<String, Set<Media>> index, String query) {
+        Set<Media> searchResult = new TreeSet<>();
+        Scanner queryRead = new Scanner(query);
+        List<String> words = new ArrayList<>();
+        // if the query is a sentence instead of just a word
+        while(queryRead.hasNext())
+        {
+            words.add(queryRead.next());
+        }
+        queryRead.close();
+        for(int i = 0; i < words.size(); i++)
+        {
+            String currWord = words.get(i);
+            if(index.containsKey(currWord))
+            {
+                Set<Media> temp = index.get(currWord);
+                Iterator<Media> iter = temp.iterator();
+                while(iter.hasNext())
+                {
+                    // Comparable is active when book is added to set
+                    searchResult.add(iter.next());
+                }
+            }
+        }
+        return searchResult;
+    }
+    
+    // Allows the user to search a specific query using the provided 'index' to find appropraite
+    //  Media entries.
+    //
+    // Parameters:
+    //   console - the Scanner to get user input from. Should be non-null
+    //   index - an inverted index mapping terms to the Set of media containing those terms.
+    //           Should be non-null
+    public static void searchQuery(Scanner console, List<Media> documents, 
+                                Map<String, Set<Media>> index) {
+        System.out.println("Enter query:");
+        System.out.print("> ");
+        String query = console.nextLine();
+
+        Set<Media> result = search(index, query);
+        
+        if (result.isEmpty()) {
+            System.out.println("\tNo results!");
+        } else {
+            for (Media m : result) {
+                System.out.println("\t" + m.toString());
+            }
+        }
+    }
+
+    // Allows the user to add a rating to one of the options wthin 'media'
+    //
+    // Parameters:
+    //   console - the Scanner to get user input from. Should be non-null.
+    //   media - list of all media options loaded into the search engine. Should be non-null.
+    public static void addRating(Scanner console, List<Media> media) {
+        for (int i = 0; i < media.size(); i++) {
+            System.out.println("\t" + i + ": " + media.get(i).toString());
+        }
+        System.out.println("What would you like to rate (enter index)?");
+        System.out.print("> ");
+        int choice = Integer.parseInt(console.nextLine());
+        if (choice < 0 || choice >= media.size()) {
+            System.out.println("Invalid choice");
+        } else {
+            System.out.println("Rating [" + media.get(choice).getTitle() + "]");
+            System.out.println("What rating would you give?");
+            System.out.print("> ");
+            int rating = Integer.parseInt(console.nextLine());
+            media.get(choice).addRating(rating);
+        }
+    }
+
+    // Loads all books from BOOK_DIRECTORY. Assumes that each book starts with two lines -
+    //      "Title: " which is followed by the book's title
+    //      "Author: " which is followed by the book's author
+    //
+    // Returns:
+    //   A list of all book objects corresponding to the ones located in BOOK_DIRECTORY
+    public static List<Media> loadBooks() throws FileNotFoundException {
+        List<Media> ret = new ArrayList<>();
+        
+        File dir = new File(BOOK_DIRECTORY);
+        for (File f : dir.listFiles()) {
+            Scanner sc = new Scanner(f, "utf-8");
+            String title = sc.nextLine().substring("Title: ".length());
+            List<String> author = List.of(sc.nextLine().substring("Author: ".length()));
+
+            Media book = new Book(title, author, sc);
+
+            // Adds random ratings to 'book' based on the class constants. 
+            // Feel free to comment this out.
+            int minRating = RAND.nextInt(MIN_RATING, MAX_RATING + 1);
+            addRatings(minRating, Math.min(MAX_RATING, RAND.nextInt(minRating, MAX_RATING + 1)),
+                        RAND.nextInt(MIN_NUM_RATINGS, MAX_NUM_RATINGS), book);
+            ret.add(book);
+        }
+
+        return ret;
+    }
+
+    // Adds ratings to the provided media numRatings amount of times. Each rating is a random int
+    // between minRating and maxRating (inclusive).
+    private static void addRatings(int minRating, int maxRating, int numRatings, Media media) {
+        for (int i = 0; i < numRatings; i++) {
+            media.addRating(RAND.nextInt(minRating, maxRating + 1));
+        }
+    }
+}
+
+public class Book implements Media, Comparable<Book>
+{
+    private String title;
+    private List<String> authors;
+    private List<String> contents;
+    private List<Integer> ratings;
+
+    // Behavior:
+    // - This method creates a new Book object
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - title: the title of the book
+    // - authors: the list of authors of the book
+    // - content: A reader (scanner) of the words of the book
+    public Book(String title, List<String> authors, Scanner content)
+    {
+        this.title = title;
+        this.authors = authors;
+        this.contents = new ArrayList<String>();
+        while(content.hasNext())
+        {
+            contents.add(content.next());
+        }
+        this.ratings = new ArrayList<Integer>();
+    }
+
+    // Behavior:
+    // - The method returns the given title of the book
+    // Exceptions:
+    // - None
+    // Returns:
+    // - String: the title of the book
+    // Parameters:
+    // - None
+    public String getTitle()
+    {
+        return this.title;
+    }
+
+    // Behavior:
+    // - The method returns the given list of authors of the book
+    // Exceptions:
+    // - None
+    // Returns:
+    // - List<String>: The list of authors of the book
+    // Parameters:
+    // - None
+    public List<String> getArtists()
+    {
+        return this.authors;
+    }
+
+    // Behavior:
+    // - The method records a new rating of the book and adds it to the existing ratings
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - score: a rating of the book that the client wishes to add 
+    public void addRating(int score)
+    {
+        ratings.add(score);
+    }
+
+    // Behavior:
+    // - The method returns the number of the ratings the book has recieved
+    // Exceptions:
+    // - None
+    // Returns:
+    // - int: the number of ratings the book has
+    // Parameters:
+    // - None
+    public int getNumRatings()
+    {
+        return this.ratings.size();
+    }
+
+    // Behavior:
+    // - The method calculates the average rating of a book based on the number of reviews
+    //   and the value of each review
+    // Exceptions:
+    // - None
+    // Returns:
+    // - double: the average rating of the book
+    // Parameters:
+    // - None
+    public double getAverageRating()
+    {
+        double sum = 0.0;
+        for(int i = 0; i < ratings.size(); i++)
+        {
+            sum += ratings.get(i);
+        }
+        if(this.ratings.size() == 0)
+        {
+            return sum; 
+        }
+        return sum / ratings.size();
+    }
+
+    // Behavior:
+    // - The method returns the contents (the words) of the book
+    // Exceptions:
+    // - None
+    // Returns:
+    // - List<String>: All the words in the book
+    // Parameters:
+    // - None
+    public List<String> getContent()
+    {
+        return this.contents;
+    }
+
+    // Behavior:
+    // - The method compares two books together by first the average rating and if necessary the
+    //   number of reviews each book has. This will help determine which book is "higher" in rank
+    //   than the other.
+    // Exceptions:
+    // - None
+    // Returns:
+    // - int: the resulting comparative number for sorting. If the number is 1, that means that
+    //   the current book will be ranked higher in the user's data structure. If the number is
+    //   -1, that means the current book will be ranked lower in the data structure. If it is 0,
+    //   then the user will have to figure out how to rank them.
+    // Parameters:
+    // - other: the book that the current book is being compared to
+    @Override
+    public int compareTo(Book other)
+    {
+        if(this.getAverageRating() > other.getAverageRating())
+        {
+            return 1;
+        }
+        else if(this.getAverageRating() == other.getAverageRating())
+        {
+            if(this.getNumRatings() > other.getNumRatings())
+            {
+                return 1;
+            }
+            else if (this.getNumRatings() == other.getNumRatings())
+            {
+                return 0;
+            }
+            else
+            {
+                return -1;
+            }
+        }
+        else
+        {
+            return -1;
+        }
+    }
+
+    // Behavior:
+    // - The method returns the given title and authors of the book. If there are reviews
+    //   for the book, the average rating and the number of ratings will be also displayed.
+    // Exceptions:
+    // - None
+    // Returns:
+    // - String: the string representation of the book
+    // Parameters:
+    // - None
+    public String toString()
+    {
+        String str = "" + this.title + " by " + this.authors + "";
+        if(ratings.size() > 0)
+        {
+            double rating = this.getAverageRating();
+            rating = Math.round(rating * 100.0) / 100.0; 
+            str += ": " + rating + " (" + this.ratings.size() + " ratings)"; 
+        }
+        return str;
+    }
+}

@@ -1,0 +1,188 @@
+import java.util.*;
+
+public class MusicBox {
+    public static final String NOTES = "CDEFGAB";
+    public static final String SHARP = "♯";
+    public static final String FLAT = "♭";
+    
+    public static void main(String[] args) {
+        Scanner console = new Scanner(System.in);
+        String[][] song = composeSong(console);
+        System.out.println("Returned song 2D array:");
+        for (int i = 0; i < song.length; i++) {
+            for (int j = 0; j < song[0].length; j++) {
+                System.out.print(song[i][j] + " "); 
+            }
+            System.out.println();
+        }
+    }
+
+    // Behavior:
+    // - This method composes a song based on inputs from the user in the console
+    //   on number of melodies and length of each melody
+    // Exceptions:
+    // - None
+    // Returns:
+    // - String[][]: The song, the number of rows the inputed number of melodies
+    //               the number of columns the inputed length of each melody
+    // Parameters:
+    // - input: Scanner of the console
+   public static String[][] composeSong(Scanner input)
+    {
+        // Gets number of melodies
+        System.out.print("Enter the number of melodies: ");
+        String numM = input.nextLine();
+        int numMelodies = Integer.parseInt(numM);
+        
+        // Gets number of notes 
+        System.out.print("Enter the length of each melody: ");
+        String numN = input.nextLine();
+        int numNotes = Integer.parseInt(numN);
+
+        System.out.println();
+
+        // declare return song array[][]
+        String[][] song = new String[numMelodies][numNotes];
+
+        // adds melodies
+        for(int i = 0; i < numMelodies; i++)
+        {
+            System.out.println("Composing melody #" + (i + 1));
+            String[] melody = createMelody(numNotes, input);
+            // fence post
+            song[i][0] = melody[0]; // the first note of the melody
+            for(int j = 1; j <= melody.length - 1; j++)
+            {
+                song[i][j] = melody[j]; // rest of the notes
+            }
+        }
+        return song;
+    }
+
+    // composeSong helper method
+    // Behavior:
+    // - This method creates a melody given the notes and the length of the melody
+    // Exceptions:
+    // - None
+    // Returns:
+    // - String[]: The melody with the inputed notes
+    // Parameters:
+    // - num: The length of the melody
+    // - input: Scanner of the console
+    public static String[] createMelody(int num, Scanner input)
+    {
+        // declare melody array
+        String[] melody = new String[num];
+        // get user input and add to melody
+        for(int i = 0; i < melody.length; i++)
+        {
+            System.out.print("  Enter note #" + (i + 1) + ": ");
+            String newNote = input.nextLine();
+            melody[i] = newNote;
+        }
+        System.out.println();
+        return melody;
+    }
+
+
+    // Choosing to do findChord
+    // Behavior:
+    // - This method takes in a song and a chord and determines if the 
+    //   the chord is present in the song
+    // Exceptions:
+    // - None
+    // Returns:
+    // - int: the index of the column the chord is located
+    // Parameters:
+    // - song: given song
+    // - chord: chord to search for
+    public static int findChord(String[][] song, String[] chord)
+    {   
+        // comparison array
+        String[] compare = new String[song.length];
+        for(int i = 0; i < song[0].length; i++)
+        {
+            int index = 0; 
+            for(int j = 0; j < song.length; j++)
+            {
+                if(index < song.length) // in the case that song is not square
+                {
+                    compare[index] = song[j][i]; // compare filled
+                    index++;
+                }
+            }
+            if(compareNotes(chord, compare) && compareNotes(compare, chord))
+            {
+                return i;
+            }
+            // clear the compare to prevent wrong value
+            for(int k = 0; k < compare.length; k++)
+            {
+                compare[k] = "";
+            }
+        }
+        return -1; 
+    }
+
+    // Behavior:
+    // - This method compares whether the column on the song contains
+    //   the notes of the given chord
+    // Exceptions:
+    // - None
+    // Returns:
+    // - boolean: if it contains all the notes of the given chord
+    // Parameters:
+    // - given: the initial chord to compare to
+    // - collected: the notes collected from the song
+    public static boolean compareNotes(String[] given, String[] collected)
+    {
+        // create boolean []
+        boolean[] compare = new boolean[given.length];
+        // convert collected into string for contains
+        String collect = "";
+        for(int i = 0; i < collected.length; i++)
+        {
+            collect += collected[i];
+        }
+        // traverse given to fill compare[] with true or false
+        for(int j = 0; j < given.length; j++)
+        {
+            if(collect.indexOf(given[j]) > -1)
+            {
+                compare[j] = true;
+            }
+        }
+        // sees if all the notes are true
+        boolean anyFalse = falseCounter(compare);
+        if(!anyFalse)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    // Behavior:
+    // - This method finds if there are any falses in the given array
+    // Exceptions:
+    // - None
+    // Returns:
+    // - boolean: if there are more than one false or not
+    // Parameters:
+    // - arr: the boolean of the existence of the notes compared to the chord
+    public static boolean falseCounter(boolean[] arr)
+    {
+        int falses = 0;
+        for(int i = 0; i < arr.length; i++)
+        {
+            if(arr[i] == false)
+            {
+                falses++;
+            }
+        }
+        if(falses > 0)
+        {
+            return true;
+        }
+        return false;
+    }
+}

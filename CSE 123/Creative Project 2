@@ -1,0 +1,279 @@
+import java.util.*;
+import java.awt.*;
+import java.awt.Color;
+
+public class Mondrian {
+    private Color[] COLORS = {Color.RED, Color.YELLOW, Color.CYAN};
+    private Random RANDINT = new Random();
+    private static final int MIN_ROW_OR_COLUMN = 300;
+    private static final int BOUNDARY = 10;
+    private static final int MAX_SLICES = 4;
+
+    // Behavior:
+    // - This method fills an area on the canvas passed in a random color from the list of 
+    //   colors. It leaves a small border (one pixel) to differentiate this colored area from 
+    //   another area on the canvas next to it.
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - pixels: The canvas given by the user
+    // - x1: the first row number of the area to be colored
+    // - x2: the second row number of the area to be colored
+    // - y1: the first column number of the area to be colored
+    // - y2: the second column number of the area to be colored
+    private void fill(Color[][] pixels, int x1, int x2, int y1, int y2)
+    {
+        Color toColor = COLORS[RANDINT.nextInt(3)];
+        for(int x = x1 + 1; x < x2 - 1; x++)
+        {
+            for(int y = y1 + 1; y < y2 - 1; y++)
+            {
+                pixels[y][x] = toColor;
+            }
+        }
+    }
+
+    // Behavior:
+    //   This method takes in the canvas and divides in both dimensions at random points if the
+    //   height and width is greater than or equal to one fourth the length and width. It divides
+    //   only the height it he height of the sub rectangle >= one fourth the height of the full
+    //   canvas. And divides only the width if the width of the sub rectangle >= one fourth of the
+    //   full canvas' width. If none of these conditions are true, the area is sent to be colored
+    //   in.
+    // Exceptions:
+    // - IllegalArgumentException: if the canvas is null, or the length or width of the canvas
+    //   is less than 300 pixels long.
+    // Returns:
+    // - None
+    // Parameters:
+    // - pixels: The canvas to be divided and colored, given by the user.
+    public void paintBasicMondrian(Color[][] pixels)
+    {
+        if(pixels == null || pixels.length < MIN_ROW_OR_COLUMN 
+                        || pixels[0].length < MIN_ROW_OR_COLUMN)
+        {
+            throw new IllegalArgumentException();
+        }
+        paintBasicMondrian(pixels, 0, pixels[0].length, 0, pixels.length);
+    }
+
+    // Behavior:
+    // - This is the method that actually does the dividing. This method takes in the canvas and 
+    //   and divides in both dimensions at random points if the height and width is greater than
+    //   or equal to one fourth the length and width. It divides only the height it he height of
+    //   the sub rectangle >= one fourth the height of the full canvas. And divides only the width
+    //   if the width of the sub rectangle >= one fourth of the full canvas' width. If none of
+    //   these conditions are true, the area is sent to be colored in.
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - pixels: The canvas given by the user
+    // - x1: the first row number of the area to be checked and maybe divided
+    // - x2: the second row number of the area to be checked and maybe divided
+    // - y1: the first column number of the area to be checked and maybe divided
+    // - y2: the second column number of the area to be checked and maybe divided
+    private void paintBasicMondrian(Color[][] pixels, int x1, int x2, int y1, int y2)
+    {
+
+        if(((y2 - y1) >= (pixels.length / 4)) && (((x2 - x1) >= (pixels[0].length / 4))))
+        {
+            int horizontalCut = RANDINT.nextInt((x2 - x1) - (2*BOUNDARY)) + (x1 + BOUNDARY);
+            int verticalCut = RANDINT.nextInt((y2 - y1) - 20) + (y1 + 10);
+            paintBasicMondrian(pixels, x1, horizontalCut, y1, verticalCut);
+            paintBasicMondrian(pixels, horizontalCut, x2, y1, verticalCut);
+            paintBasicMondrian(pixels, x1, horizontalCut, verticalCut, y2);
+            paintBasicMondrian(pixels, horizontalCut, x2, verticalCut, y2);
+        }
+        else if((y2 - y1) >= (pixels.length / 4))
+        {
+            int verticalCut = RANDINT.nextInt((y2 - y1) - (2*BOUNDARY)) + (y1 + BOUNDARY);
+            paintBasicMondrian(pixels, x1, x2, y1, verticalCut);
+            paintBasicMondrian(pixels, x1, x2, verticalCut, y2);
+        }
+        else if((x2 - x1) >= (pixels[0].length / 4))
+        {
+            int horizontalCut = RANDINT.nextInt((x2 - x1) - (2*BOUNDARY)) + (x1 + BOUNDARY);
+            paintBasicMondrian(pixels, x1, horizontalCut, y1, y2);
+            paintBasicMondrian(pixels, horizontalCut, x2, y1, y2);
+        }
+        else
+        {
+            fill(pixels, x1, x2, y1, y2);
+        }
+    }
+
+    // Behavior: Extention is Random Slices
+    // - This is the method that does the complex Mondrian art. In this method, instead of a
+    //   random line drawn per dimension, the number of lines are randomly decided from 1 to 4.
+    //   It divides in both dimensions at random points if the height and width is greater than
+    //   or equal to one fourth the length and width. It divides only the height it he height of
+    //   the sub rectangle >= one fourth the height of the full canvas. And divides only the width
+    //   if the width of the sub rectangle >= one fourth of the full canvas' width. If none of
+    //   these conditions are true, the area is sent to be colored in.
+    // Exceptions:
+    // - IllegalArgumentException: if the canvas is null, or the length or width of the canvas
+    //   is less than 300 pixels long.
+    // Returns:
+    // - None
+    // Parameters:
+    // - pixels: The canvas to be divided and colored, given by the user.
+    public void paintComplexMondrian(Color[][] pixels)
+    {
+        if(pixels == null || pixels.length < MIN_ROW_OR_COLUMN 
+                || pixels[0].length < MIN_ROW_OR_COLUMN)
+        {
+            throw new IllegalArgumentException();
+        }
+        paintComplexMondrian(pixels, 0, pixels[0].length, 0, pixels.length);
+    }
+
+    // Behavior:
+    // - This is the method that does the complex Mondrian art. In this method, instead of a
+    //   random line drawn per dimension, the number of lines are randomly decided from 1 to 4.
+    //   It divides in both dimensions at random points if the height and width is greater than
+    //   or equal to one fourth the length and width. It divides only the height it he height of
+    //   the sub rectangle >= one fourth the height of the full canvas. And divides only the width
+    //   if the width of the sub rectangle >= one fourth of the full canvas' width. If none of
+    //   these conditions are true, the area is sent to be colored in.
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - pixels: The canvas given by the user
+    // - x1: the first row number of the area to be checked and maybe divided
+    // - x2: the second row number of the area to be checked and maybe divided
+    // - y1: the first column number of the area to be checked and maybe divided
+    // - y2: the second column number of the area to be checked and maybe divided
+    private void paintComplexMondrian(Color[][] pixels, int x1, int x2, int y1, int y2)
+    {
+        if(((y2 - y1) >= (pixels.length / 4)) && (((x2 - x1) >= (pixels[0].length / 4))))
+        {
+            int verticalSplitNum = RANDINT.nextInt(MAX_SLICES) + 1;
+            int[] vertical = new int[verticalSplitNum + 2];
+            int horizontalSplitNum = RANDINT.nextInt(MAX_SLICES) + 1;
+            int[] horizontal = new int[horizontalSplitNum + 2];
+
+            for(int i = 0; i < verticalSplitNum; i++)
+            {
+                vertical[i] = RANDINT.nextInt((y2 - y1) - (2*BOUNDARY)) + (y1 + BOUNDARY);
+            }
+            vertical[verticalSplitNum] = y1;
+            vertical[verticalSplitNum + 1] = y2;
+            sortSplitNumbers(vertical);
+            for(int i = 0; i < horizontalSplitNum; i++)
+            {
+                horizontal[i] = RANDINT.nextInt((x2 - x1) - (2*BOUNDARY)) + (x1 + BOUNDARY);
+            }
+            horizontal[horizontalSplitNum] = x1;
+            horizontal[horizontalSplitNum + 1] = x2;
+            sortSplitNumbers(horizontal);
+
+            for(int i = 0; i < vertical.length - 1; i++)
+            {
+                for(int j = 0; j < horizontal.length - 1; j++)
+                {
+                    paintComplexMondrian(pixels, horizontal[j], horizontal[j + 1], vertical[i], vertical[i + 1]);
+                }
+            }
+        }
+        else if((y2 - y1) >= (pixels.length / 4))
+        {
+            int verticalSplitNum = RANDINT.nextInt(MAX_SLICES) + 1;
+            int[] vertical = new int[verticalSplitNum + 2];
+            for(int i = 0; i < verticalSplitNum; i++)
+            {
+                vertical[i] = RANDINT.nextInt((y2 - y1) - (2*BOUNDARY)) + (y1 + BOUNDARY);
+            }
+            vertical[verticalSplitNum] = y1;
+            vertical[verticalSplitNum + 1] = y2;
+            sortSplitNumbers(vertical);
+
+            for(int i = 0; i < vertical.length - 1; i++)
+            {
+                paintComplexMondrian(pixels, x1, x2, vertical[i], vertical[i + 1]);
+            }
+        }
+        else if((x2 - x1) >= (pixels[0].length / 4))
+        {
+            int horizontalSplitNum = RANDINT.nextInt(MAX_SLICES) + 1;
+            int[] horizontal = new int[horizontalSplitNum + 2];
+            for(int i = 0; i < horizontalSplitNum; i++)
+            {
+                horizontal[i] = RANDINT.nextInt((x2 - x1) - (2*BOUNDARY)) + (x1 + BOUNDARY);
+            }
+            horizontal[horizontalSplitNum] = x1;
+            horizontal[horizontalSplitNum + 1] = x2;
+            sortSplitNumbers(horizontal);
+
+            for(int i = 0; i < horizontal.length - 1; i++)
+            {
+                paintComplexMondrian(pixels, horizontal[i], horizontal[i + 1], y1, y2);
+            }
+        }
+        else
+        {
+            fill(pixels, x1, x2, y1, y2);
+        }
+    }
+
+    // Behavior:
+    // - This method sorts the int array so that the elements are arranged from greatest to least
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - arr: the array of integers to be sorted
+    private void sortSplitNumbers(int[] arr)
+    {
+        for(int i = 0; i < arr.length; i++)
+        {
+            for(int j = i + 1; j < arr.length; j++)
+            {
+                if(arr[i] > arr[j])
+                {
+                    int temp = arr[j];
+                    arr[j] = arr[i];
+                    arr[i] = temp;
+                }
+            }
+        }
+    }
+}
+
+public class Client {
+    public static void main(String[] args) throws Exception {
+        Scanner console = new Scanner(System.in);
+        System.out.println("Welcome to the CSE 123 Mondrian Art Generator!");
+
+        int choice = 0;
+        while (choice != 1 && choice != 2) {
+            System.out.print("Enter 1 for a basic Mondrian or 2 for a complex Mondrian: ");
+            choice = console.nextInt();
+        }
+        System.out.print("Enter image width (>= 300px): ");
+        int width = console.nextInt();
+        System.out.print("Enter image height (>= 300px): ");
+        int height = console.nextInt();
+
+        Mondrian mond = new Mondrian();
+        Picture pic = new Picture(width, height);
+        Color[][] pixels = pic.getPixels();
+
+        if (choice == 1) {
+            mond.paintBasicMondrian(pixels);
+        } else {    // choice == 2
+            mond.paintComplexMondrian(pixels);
+        }
+        
+        pic.setPixels(pixels);
+        pic.save(choice == 1 ? "basic.png" : "extension.png");
+        pic.show();
+        System.out.println("Enjoy your artwork!");
+    }
+}

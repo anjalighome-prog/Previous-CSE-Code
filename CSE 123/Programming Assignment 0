@@ -1,0 +1,293 @@
+import java.util.*;
+
+public class Substitution extends Cipher
+{
+    public String encoding;
+    
+    // Behavior:
+    // - This method creates a new Substitution cipher machine if the user doesn't give a cipher
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - None  
+    public Substitution()
+    {
+        encoding = null;
+    }
+
+    // Behavior:
+    // - This mehod creates a new Substitution cipher machine in the situation where the user
+    //   gives a cipher to use when encrypting or decrypting a message
+    // Exceptions:
+    // - None
+    // Returns:
+    // - None
+    // Parameters:
+    // - encoding: The cipher to use for the machine
+    public Substitution(String encoding)
+    {
+        setEncoding(encoding);
+    }
+    
+    // Behavior:
+    // - This makes sures that the cipher to be used is valid before encypting or decrypting
+    // Exceptions:
+    // - IllegalArgumentException: if the cipher is null, the length of the cipher is not the same
+    //   length as the range of the characters to encode, if the characters in the cipher is not
+    //   in the range of the characters to the encode, or if there are duplicate characters in 
+    //   the cipher.
+    // Returns:
+    // - N/A
+    // Parameters:
+    // - encoding: The to-be cipher
+    public void setEncoding(String encoding)
+    {
+        if(encoding == null || encoding.length() != Cipher.TOTAL_CHARS)
+        {
+            throw new IllegalArgumentException();
+        }
+        for(int i = 0; i < encoding.length(); i++)
+        {
+            char curChar = encoding.charAt(i);
+            if(curChar < Cipher.MIN_CHAR || curChar > Cipher.MAX_CHAR) // is character valid
+            {
+                throw new IllegalArgumentException();
+            }
+            for(int j = i + 1; j < encoding.length() - 1; j++) // no duplicate check
+            {
+                char compareChar = encoding.charAt(j);
+                if(compareChar == curChar)
+                {
+                    throw new IllegalArgumentException();
+                }
+            }
+        }
+        this.encoding = encoding; // setting cipher
+    }
+
+    // Behavior:
+    // - This encrypts a given method using the cipher encoding. This is based on the encodable
+    //   range set in Cipher. If there is a letter in the message to encrypt that is outside the 
+    //   encodable range of characters, then that letter is left alone.
+    // Exceptions:
+    // - IllegalStateException: If the cipher in the list is null
+    // - IllegalArgumentException: If the input is null
+    // Returns:
+    // - String: The encrypted message
+    // Parameters:
+    // - input: the message to encrypt
+    @Override
+    public String encrypt(String input) {
+        if(this.encoding == null) // what if the user had a blank cipher
+        {
+            throw new IllegalStateException();
+        }
+        if(input == null) // what if no message
+        {
+            throw new IllegalArgumentException();
+        }
+        String encode = "";
+        for(int i = 0; i < input.length(); i++)
+        {
+            int curChar = (int) input.charAt(i);
+            // get the character at the equivalent index in cipher
+            encode += encoding.charAt(curChar - Cipher.MIN_CHAR);
+        }
+        return encode;
+    }
+
+    // Behavior:
+    // - This decrypts the message given by the user by using the cipher to backtrack
+    // Exceptions:
+    // - IllegalStateException: If the cipher in the list is null
+    // - IllegalArgumentException: If the input is null
+    // Returns:
+    // - String: The decrypted message
+    // Parameters:
+    // - input: The message to be decrypted
+    @Override
+    public String decrypt(String input) {
+        if(this.encoding == null) // what if no cipher
+        {
+            throw new IllegalStateException();
+        }
+        if(input == null) // what if no message
+        {
+            throw new IllegalArgumentException();
+        }
+        String decode = "";
+        for(int i = 0; i < input.length(); i++)
+        {
+            // reversing encryption
+            char curChar = input.charAt(i);
+            int indexInCipher = encoding.indexOf(curChar);
+            decode += (char) (indexInCipher + Cipher.MIN_CHAR);
+        }
+        return decode;
+    }
+}
+
+public class CaesarShift extends Substitution
+{
+    // - This creates a new CaesarShift object, making the cipher with the letter shift the user
+    //   wants.
+    // Exceptions:
+    // - IllegalArgumentException: If the shift is a negative number or 0
+    // Returns:
+    // - N/A
+    // Parameters:
+    // - shift: the number the user wants the letter to be shifted to the left
+    public CaesarShift(int shift)
+    {
+        super();
+        if(shift <= 0)
+        {
+            throw new IllegalArgumentException();
+        }
+        if(shift > Cipher.TOTAL_CHARS)
+        {
+            shift = (shift % Cipher.TOTAL_CHARS);
+        }
+        for(int i = Cipher.MIN_CHAR + shift; i <= Cipher.MAX_CHAR; i++) // initial shift
+        {
+            char curChar = (char) i;
+            if(encoding == null) // first character to be added
+            {
+                encoding = "" + curChar;
+            }
+            else
+            {
+                encoding += curChar;
+            }
+        }
+        for(int i = 0; i < shift; i++) // rest of the letters in the beginning
+        {
+            char curChar = (char) (i + Cipher.MIN_CHAR);
+            encoding += curChar;
+        }
+        this.setEncoding(encoding); // setting cipher
+    }
+}
+
+public class CaesarKey extends Substitution
+{
+    // Behavior:
+    // - This creates a new CaesarKey object and creates the cipher using the word to adjust the
+    //   cipher
+    // Exceptions:
+    // - IllegalArgumentException: if the word is null or has no length, or if the letters in the
+    //   key are not in the range of the characters to be encoded, or if there are duplicates
+    // Returns:
+    // - N/A
+    // Parameters:
+    // - key: The word to put in the beginning of the cipher
+    public CaesarKey(String key)
+    {
+        super();
+        if(key == null)
+        {
+            throw new IllegalArgumentException();
+        }
+        else if(key.length() == 0)
+        {
+            throw new IllegalArgumentException();
+        }
+        for(int i = 0; i < key.length(); i++)
+        {
+            char curChar = key.charAt(i);
+            if(curChar < Cipher.MIN_CHAR || curChar > Cipher.MAX_CHAR)
+            {
+                throw new IllegalArgumentException();
+            }
+            for(int j = i + 1; j < key.length() - 1; j++)
+            {
+                char compareChar = key.charAt(j);
+                if(compareChar == curChar)
+                {
+                    throw new IllegalArgumentException();
+                }
+            }
+        }
+        encoding = key;
+        for(int i = Cipher.MIN_CHAR; i <= Cipher.MAX_CHAR; i++)
+        {
+            char curChar = (char) i;
+            if(encoding.indexOf(curChar) == -1) // making sure no duplicates
+            {
+                encoding += curChar;
+            }
+        }
+        this.setEncoding(encoding); // sets the cipher
+    }
+}
+
+public class MultiCipher extends Cipher
+{
+    private List<Cipher> ciphers;
+
+    // Behavior:
+    // - Creates a new MultiCipher object
+    // Exceptions:
+    // - IllegalArgumentException: if the list of ciphers is null or of size 0
+    // Returns:
+    // - N/A
+    // Parameters:
+    // - ciphers: the list of ciphers to use for encryption and decryption
+    public MultiCipher(List<Cipher> ciphers)
+    {
+        if(ciphers == null)
+        {
+            throw new IllegalArgumentException();
+        }
+        if(ciphers.size() == 0)
+        {
+            throw new IllegalArgumentException();
+        }
+        this.ciphers = ciphers;
+    }
+
+    // Behavior:
+    // - Encrypts a message given by the user by repeated encrypting with the list of ciphers.
+    //   If there is a character in the input string that is not in the range set by the cipher,
+    //   then the encoded the string will encoded weirdly.
+    // Exceptions:
+    // - IllegalStateException: If the cipher in the list is null
+    // - IllegalArgumentException: If the input is null
+    // Returns:
+    // - String: the fully encrypted message
+    // Parameters:
+    // - input: The string to encrypt
+    @Override
+    public String encrypt(String input) {
+        String ret = ciphers.get(0).encrypt(input); // fence post method
+        for(int i = 1; i < ciphers.size(); i++)
+        {
+            ret = ciphers.get(i).encrypt(ret); // encrypting the previous encrytion repeatedly
+        }
+        return ret;
+    }
+
+    // Behavior:
+    // - This decrypts a message repeated by reversing the order of ciphers applied
+        //   If there is a character in the input string that is not in the range set by the cipher,
+    //   then the encoded the string will decoded weirdly.
+    // Exceptions:
+    // - IllegalStateException: If the cipher in the list is null
+    // - IllegalArgumentException: If the input is null
+    // Returns:
+    // - String: The decrypted message
+    // Parameters:
+    // - input: The message to decrypt
+    @Override
+    public String decrypt(String input) {
+        String ret = ciphers.get(ciphers.size() - 1).decrypt(input); // reverse
+        for(int i = ciphers.size() - 2; i >= 0; i--)
+        {
+            ret = ciphers.get(i).decrypt(ret);
+        }
+        return ret;
+    }
+
+}
